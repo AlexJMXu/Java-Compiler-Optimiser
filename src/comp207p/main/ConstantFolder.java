@@ -5,10 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.bcel.classfile.ClassParser;
-import org.apache.bcel.classfile.Code;
-import org.apache.bcel.classfile.JavaClass;
-import org.apache.bcel.classfile.Method;
+import org.apache.bcel.classfile.*;
 import org.apache.bcel.generic.ClassGen;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.InstructionHandle;
@@ -43,10 +40,47 @@ public class ConstantFolder
 		ClassGen cgen = new ClassGen(original);
 		ConstantPoolGen cpgen = cgen.getConstantPool();
 
-		// Implement your optimization here
+        ConstantPool cp = cpgen.getConstantPool();
+        Constant[] constants = cp.getConstantPool();
+        Method[] methods = cgen.getMethods();
+
+        for(Method m : methods) {
+            System.out.println(m); //Print method name
+            optimizeMethod(cgen, cpgen, m);
+        }
         
-		this.optimized = gen.getJavaClass();
+		this.optimized = cgen.getJavaClass();
 	}
+
+    /**
+     * Optimise method
+     */
+    private void optimizeMethod(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
+        Code methodCode = method.getCode();
+
+        InstructionList instructionList = new InstructionList(methodCode.getCode());
+
+        // Initialise a method generator with the original method as the baseline
+        MethodGen methodGen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), instructionList, cpgen);
+
+        for(InstructionHandle handle : instructionList.getInstructionHandles()) {
+            System.out.println(handle);
+        }
+
+        // setPositions(true) checks whether jump handles
+        // are all within the current method
+        instructionList.setPositions(true);
+
+        // set max stack/local
+        methodGen.setMaxStack();
+        methodGen.setMaxLocals();
+
+        // generate the new method with optimised instructions
+        Method newMethod = methodGen.getMethod();
+
+        // replace the method in the original class
+        cgen.replaceMethod(method, newMethod);
+    }
 
 	
 	public void write(String optimisedFilePath)
