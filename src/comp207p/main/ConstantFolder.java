@@ -44,6 +44,14 @@ public class ConstantFolder
         Constant[] constants = cp.getConstantPool();
         Method[] methods = cgen.getMethods();
 
+        for(Constant c : constants) {
+            if(c == null) continue;
+            if(c instanceof ConstantString) continue; // We don't care about strings
+            if(c instanceof ConstantUtf8) continue;
+
+            System.out.println(c);
+        }
+
         for(Method m : methods) {
             System.out.println(m); //Print method name
             optimizeMethod(cgen, cpgen, m);
@@ -53,7 +61,7 @@ public class ConstantFolder
 	}
 
     /**
-     * Optimise method
+     * Optimise method instruction list
      */
     private void optimizeMethod(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
         Code methodCode = method.getCode();
