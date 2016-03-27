@@ -104,7 +104,7 @@ public class ConstantFolder
             }
 
             //Set left constant handle to point to new index
-            left.setIndex(poolIndex);
+            left.setIndex(newPoolIndex);
 
             //Delete other handles
             try {
