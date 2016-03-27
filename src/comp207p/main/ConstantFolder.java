@@ -92,15 +92,15 @@ public class ConstantFolder
             Double result = foldOperation(operation,(Number) left.getValue(cpgen), (Number) right.getValue(cpgen));
             System.out.format("Folding to value %f\n", result);
 
-            int poolIndex = -1;
+            int newPoolIndex;
             if(left.getType(cpgen).getSignature().equals("D") || (right.getType(cpgen).getSignature().equals("D"))) {
-
+                newPoolIndex = cpgen.addDouble(result);
             } else if(left.getType(cpgen).getSignature().equals("F") || (right.getType(cpgen).getSignature().equals("F"))) {
-
+                newPoolIndex = cpgen.addFloat(result.floatValue());
             } else if(left.getType(cpgen).getSignature().equals("L") || (right.getType(cpgen).getSignature().equals("L"))) {
-
+                newPoolIndex = cpgen.addLong(result.longValue());
             } else { //int
-                poolIndex = cpgen.addInteger(result.intValue());
+                newPoolIndex = cpgen.addInteger(result.intValue());
             }
 
             //Set left constant handle to point to new index
