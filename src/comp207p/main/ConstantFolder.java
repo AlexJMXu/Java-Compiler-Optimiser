@@ -71,13 +71,17 @@ public class ConstantFolder
         // Initialise a method generator with the original method as the baseline
         MethodGen methodGen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), instructionList, cpgen);
 
+        // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
+        // instruction. E.g. IADD, DMUL, etc.
         InstructionFinder finder = new InstructionFinder(instructionList);
-        for(Iterator it = finder.search("LDC LDC ArithmeticInstruction"); it.hasNext();) {
+        String regExp = "LDC LDC ArithmeticInstruction"; //Regular expression matching string
+        for(Iterator it = finder.search(regExp); it.hasNext();) {
             InstructionHandle[] match = (InstructionHandle[]) it.next();
+
+            //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable instruction set");
             for(InstructionHandle h : match) {
-
                 System.out.println(h);
             }
 
@@ -85,13 +89,14 @@ public class ConstantFolder
             LDC right = (LDC) match[1].getInstruction();
             ArithmeticInstruction operation = (ArithmeticInstruction) match[2].getInstruction();
 
-            System.out.println(left.getType(cpgen));
-            System.out.println(operation);
-            System.out.println(right.getType(cpgen));
+            System.out.format("Left: %s %s\n", left.getValue(cpgen), left.getType(cpgen));
+            System.out.format("Operator: %s\n", operation);
+            System.out.format("Right: %s %s\n", right.getValue(cpgen), right.getType(cpgen));
 
             Double result = foldOperation(operation,(Number) left.getValue(cpgen), (Number) right.getValue(cpgen));
             System.out.format("Folding to value %f\n", result);
 
+            //Insert as a new constant into constant pool
             int newPoolIndex;
             if(left.getType(cpgen).getSignature().equals("D") || (right.getType(cpgen).getSignature().equals("D"))) {
                 newPoolIndex = cpgen.addDouble(result);
@@ -140,6 +145,13 @@ public class ConstantFolder
         cgen.replaceMethod(method, newMethod);
     }
 
+    /**
+     * Fold an arithmetic operation and get the result
+     * @param operation Arithmetic operation e.g. IADD, DMUL, etc.
+     * @param left Left value of binary operator
+     * @param right Right side of binary operator
+     * @return
+     */
     private double foldOperation(ArithmeticInstruction operation, Number left, Number right) {
         if(operation instanceof IADD || operation instanceof  FADD || operation instanceof LADD || operation instanceof DADD) {
             return left.doubleValue() + right.doubleValue();
