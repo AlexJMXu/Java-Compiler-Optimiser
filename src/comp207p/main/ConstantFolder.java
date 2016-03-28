@@ -155,6 +155,8 @@ public class ConstantFolder
     private double foldOperation(ArithmeticInstruction operation, Number left, Number right) {
         if(operation instanceof IADD || operation instanceof  FADD || operation instanceof LADD || operation instanceof DADD) {
             return left.doubleValue() + right.doubleValue();
+        } else if(operation instanceof ISUB || operation instanceof  FSUB || operation instanceof LSUB || operation instanceof DSUB){
+            return left.doubleValue() - right.doubleValue();
         } else {
             throw new RuntimeException("Not supported operation");
         }
