@@ -157,6 +157,8 @@ public class ConstantFolder
             return left.doubleValue() + right.doubleValue();
         } else if(operation instanceof ISUB || operation instanceof  FSUB || operation instanceof LSUB || operation instanceof DSUB){
             return left.doubleValue() - right.doubleValue();
+        } else if(operation instanceof IMUL || operation instanceof  FMUL || operation instanceof LMUL || operation instanceof DMUL){
+            return left.doubleValue() * right.doubleValue();
         } else {
             throw new RuntimeException("Not supported operation");
         }
