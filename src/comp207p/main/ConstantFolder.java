@@ -165,7 +165,6 @@ public class ConstantFolder
             throw new RuntimeException("Not supported operation");
         }
 
-        //TODO Implement div, sub, mul
     }
 
 	
