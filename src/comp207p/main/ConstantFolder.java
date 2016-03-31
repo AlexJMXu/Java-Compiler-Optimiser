@@ -111,6 +111,10 @@ public class ConstantFolder
                 newPoolIndex = cpgen.addInteger(result.intValue());
             }
 
+            //Set unused constants to null
+            cpgen.setConstant(left.getIndex(), null);
+            cpgen.setConstant(right.getIndex(), null);
+
             //Set left constant handle to point to new index
             left.setIndex(newPoolIndex);
 
@@ -121,9 +125,9 @@ public class ConstantFolder
                 e.printStackTrace();
             }
 
-            //TODO Delete unused constants
+            //TODO Delete unused constants?
+            //unused constants currently just set to null
             System.out.println("==================================");
-
         }
 
         for(InstructionHandle handle : instructionList.getInstructionHandles()) {
