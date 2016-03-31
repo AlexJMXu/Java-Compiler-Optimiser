@@ -130,6 +130,88 @@ public class ConstantFolder
             System.out.println("==================================");
         }
 
+
+        // START OF CONSTANT VARIABLE FOLDING TEST/PRACTICE
+        regExp = "(ConstantPushInstruction|CPInstruction) StoreInstruction LoadInstruction (ConstantPushInstruction|CPInstruction) ArithmeticInstruction (ConstantPushInstruction|CPInstruction) ArithmeticInstruction";
+        for(Iterator it = finder.search(regExp); it.hasNext();) {
+            InstructionHandle[] match = (InstructionHandle[]) it.next();
+
+            //Debug output
+            System.out.println("==================================");
+            System.out.println("Found optimisable instruction set");
+            for(InstructionHandle h : match) {
+                System.out.println(h.getInstruction());
+            }
+
+            Number firstNumber = 0, secondNumber = 0, thirdNumber = 0;
+
+            if (match[0].getInstruction() instanceof ConstantPushInstruction) {
+                firstNumber = (Number) ((ConstantPushInstruction) match[0].getInstruction()).getValue();
+            } else if (match[0].getInstruction() instanceof LDC) {
+                firstNumber = (Number) ((LDC) match[0].getInstruction()).getValue(cpgen);
+            } else if (match[0].getInstruction() instanceof LDC2_W) {
+                firstNumber = (Number) ((LDC2_W) match[0].getInstruction()).getValue(cpgen);
+            }
+
+            if (match[3].getInstruction() instanceof ConstantPushInstruction) {
+                secondNumber = (Number) ((ConstantPushInstruction) match[3].getInstruction()).getValue();
+            } else if (match[3].getInstruction() instanceof LDC) {
+                secondNumber = (Number) ((LDC) match[3].getInstruction()).getValue(cpgen);
+            } else if (match[3].getInstruction() instanceof LDC2_W) {
+                secondNumber = (Number) ((LDC2_W) match[3].getInstruction()).getValue(cpgen);
+            }
+
+            if (match[5].getInstruction() instanceof ConstantPushInstruction) {
+                thirdNumber = (Number) ((ConstantPushInstruction) match[5].getInstruction()).getValue();
+            } else if (match[5].getInstruction() instanceof LDC) {
+                thirdNumber = (Number) ((LDC) match[5].getInstruction()).getValue(cpgen);
+            } else if (match[5].getInstruction() instanceof LDC2_W) {
+                thirdNumber = (Number) ((LDC2_W) match[5].getInstruction()).getValue(cpgen);
+            }
+
+            ArithmeticInstruction firstOperation = (ArithmeticInstruction) match[4].getInstruction();
+            ArithmeticInstruction secondOperation = (ArithmeticInstruction) match[6].getInstruction();
+
+            Double firstResult = foldOperation(firstOperation, firstNumber, secondNumber);
+            Double secondResult = foldOperation(secondOperation, firstResult, thirdNumber);
+            System.out.format("Folding to value %f\n", secondResult);
+
+            //Insert as a new constant into constant pool
+            int newPoolIndex;
+            if(((TypedInstruction)match[0].getInstruction()).getType(cpgen).getSignature().equals("D") || ((TypedInstruction)match[3].getInstruction()).getType(cpgen).getSignature().equals("D") || ((TypedInstruction)match[5].getInstruction()).getType(cpgen).getSignature().equals("D")) {
+                newPoolIndex = cpgen.addDouble(secondResult);
+            } else if(((TypedInstruction)match[0].getInstruction()).getType(cpgen).getSignature().equals("F") || ((TypedInstruction)match[3].getInstruction()).getType(cpgen).getSignature().equals("F") || ((TypedInstruction)match[5].getInstruction()).getType(cpgen).getSignature().equals("F")) {
+                newPoolIndex = cpgen.addFloat(secondResult.floatValue());
+            } else if(((TypedInstruction)match[0].getInstruction()).getType(cpgen).getSignature().equals("L") || ((TypedInstruction)match[3].getInstruction()).getType(cpgen).getSignature().equals("L") || ((TypedInstruction)match[5].getInstruction()).getType(cpgen).getSignature().equals("L")) {
+                newPoolIndex = cpgen.addLong(secondResult.longValue());
+            } else { //int
+                newPoolIndex = cpgen.addInteger(secondResult.intValue());
+            }
+
+            //Set unused constants to null
+            if (match[3].getInstruction() instanceof LDC || match[3].getInstruction() instanceof LDC2_W) {
+                cpgen.setConstant(((IndexedInstruction) match[3].getInstruction()).getIndex(), null);
+            }
+            if (match[5].getInstruction() instanceof LDC || match[5].getInstruction() instanceof LDC2_W) {
+                cpgen.setConstant(((IndexedInstruction) match[5].getInstruction()).getIndex(), null);
+            }
+
+            //Set left constant handle to point to new index
+            LDC newInstruction = new LDC(newPoolIndex);
+            match[3].setInstruction(newInstruction);
+
+            //Delete other handles
+            try {
+                instructionList.delete(match[2]);
+                instructionList.delete(match[4], match[6]);
+            } catch (TargetLostException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("==================================");
+        }
+        // END OF CONSTANT VARIABLE FOLDING TEST/PRACTICE
+
         for(InstructionHandle handle : instructionList.getInstructionHandles()) {
             //TODO When x is an integer type, the value of 0 * x is zero even if the compiler does not know the value of x.
 
