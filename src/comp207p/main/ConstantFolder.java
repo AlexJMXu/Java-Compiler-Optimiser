@@ -74,7 +74,10 @@ public class ConstantFolder
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         // instruction. E.g. IADD, DMUL, etc.
         InstructionFinder finder = new InstructionFinder(instructionList);
-        String regExp = "LDC LDC ArithmeticInstruction"; //Regular expression matching string
+
+        //Regular expression matching string
+        String regExp = "(ConstantPushInstruction|LDC) (ConstantPushInstruction|LDC) ArithmeticInstruction";
+
         for(Iterator it = finder.search(regExp); it.hasNext();) {
             InstructionHandle[] match = (InstructionHandle[]) it.next();
 
