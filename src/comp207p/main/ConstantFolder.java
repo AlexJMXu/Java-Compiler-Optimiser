@@ -73,9 +73,12 @@ public class ConstantFolder
 
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         // instruction. E.g. IADD, DMUL, etc.
-        InstructionFinder finder = new InstructionFinder(instructionList);
+        // InstructionFinder finder = new InstructionFinder(instructionList);
 
         //Regular expression matching string
+        /*
+         * OLD CODE COMMENTED OUT FOR NOW JUST IN CASE
+
         String regExp = "(ConstantPushInstruction|LDC|LDC2_W) (ConstantPushInstruction|LDC|LDC2_W) ArithmeticInstruction";
 
         for(Iterator it = finder.search(regExp); it.hasNext();) {
@@ -129,92 +132,94 @@ public class ConstantFolder
             //unused constants currently just set to null
             System.out.println("==================================");
         }
+        */
 
+        // Simple Folding / Constant Variable Folding
+        int optimiseCounter = 1;
+        String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConstantPushInstruction|CPInstruction|LoadInstruction) ArithmeticInstruction";
+        
+        // Check if anymore optimisations can be made
+        while (optimiseCounter > 0) {
 
-        // START OF CONSTANT VARIABLE FOLDING TEST/PRACTICE
-        regExp = "(ConstantPushInstruction|CPInstruction) StoreInstruction LoadInstruction (ConstantPushInstruction|CPInstruction) ArithmeticInstruction (ConstantPushInstruction|CPInstruction) ArithmeticInstruction";
-        for(Iterator it = finder.search(regExp); it.hasNext();) {
-            InstructionHandle[] match = (InstructionHandle[]) it.next();
+            // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
+            InstructionFinder finder = new InstructionFinder(instructionList);
 
-            //Debug output
-            System.out.println("==================================");
-            System.out.println("Found optimisable instruction set");
-            for(InstructionHandle h : match) {
-                if(h.getInstruction() instanceof LoadInstruction) {
-                    System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
-                } else {
-                    System.out.println(h);
+            for(Iterator it = finder.search(regExp); it.hasNext();) {
+                InstructionHandle[] match = (InstructionHandle[]) it.next();
+
+                //Debug output
+                System.out.println("==================================");
+                System.out.println("Found optimisable instruction set");
+                optimiseCounter++; // Optimisation found, will iterate through instructions again to check if anymore optimisations can be made 
+                for(InstructionHandle h : match) {
+                    if(h.getInstruction() instanceof LoadInstruction) {
+                        System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
+                    } else {
+                        System.out.println(h);
+                    }
                 }
+
+                Number leftValue = 0, rightValue = 0;
+
+                InstructionHandle leftInstruction = match[0];
+                InstructionHandle rightInstruction = match[1];
+
+                if (leftInstruction.getInstruction() instanceof LoadInstruction) {
+                    leftValue = getLoadInstructionValue(leftInstruction, cpgen);
+                    rightValue = getConstantValue(rightInstruction, cpgen);
+                } else if (rightInstruction.getInstruction() instanceof LoadInstruction) {
+                    leftValue = getConstantValue(leftInstruction, cpgen);
+                    rightValue = getLoadInstructionValue(rightInstruction, cpgen);
+                } else {
+                    leftValue = getConstantValue(leftInstruction, cpgen);
+                    rightValue =  getConstantValue(rightInstruction, cpgen);
+                }
+
+                ArithmeticInstruction operation = (ArithmeticInstruction) match[2].getInstruction();
+
+                Double result = foldOperation(operation, leftValue, rightValue);
+                System.out.format("Folding to value %f\n", result);
+
+                //Insert as a new constant into constant pool
+                int newPoolIndex;
+                if(((TypedInstruction)leftInstruction.getInstruction()).getType(cpgen).getSignature().equals("D") || ((TypedInstruction)rightInstruction.getInstruction()).getType(cpgen).getSignature().equals("D")) {
+                    newPoolIndex = cpgen.addDouble(result);
+                } else if(((TypedInstruction)leftInstruction.getInstruction()).getType(cpgen).getSignature().equals("F") || ((TypedInstruction)rightInstruction.getInstruction()).getType(cpgen).getSignature().equals("F")) {
+                    newPoolIndex = cpgen.addFloat(result.floatValue());
+                } else if(((TypedInstruction)leftInstruction.getInstruction()).getType(cpgen).getSignature().equals("L") || ((TypedInstruction)rightInstruction.getInstruction()).getType(cpgen).getSignature().equals("L")) {
+                    newPoolIndex = cpgen.addLong(result.longValue());
+                } else { //int
+                    newPoolIndex = cpgen.addInteger(result.intValue());
+                }
+
+                //Set unused constants to null
+                if (leftInstruction.getInstruction() instanceof LDC || leftInstruction.getInstruction() instanceof LDC2_W) {
+                    cpgen.setConstant(((IndexedInstruction) leftInstruction.getInstruction()).getIndex(), null);
+                }
+                if (rightInstruction.getInstruction() instanceof LDC || rightInstruction.getInstruction() instanceof LDC2_W) {
+                    cpgen.setConstant(((IndexedInstruction) rightInstruction.getInstruction()).getIndex(), null);
+                }
+
+                //Set left constant handle to point to new index
+                LDC newInstruction = new LDC(newPoolIndex);
+                leftInstruction.setInstruction(newInstruction);
+                System.out.println(getConstantValue(leftInstruction, cpgen));
+
+                //Delete other handles
+                try {
+                    instructionList.delete(match[1], match[2]);
+                } catch (TargetLostException e) {
+                    e.printStackTrace();
+                }
+
+                System.out.println("==================================");
+
+                break;
             }
+            optimiseCounter--;
 
-            Number firstNumber = 0, secondNumber = 0, thirdNumber = 0;
-
-            if (match[0].getInstruction() instanceof ConstantPushInstruction) {
-                firstNumber = (Number) ((ConstantPushInstruction) match[0].getInstruction()).getValue();
-            } else if (match[0].getInstruction() instanceof LDC) {
-                firstNumber = (Number) ((LDC) match[0].getInstruction()).getValue(cpgen);
-            } else if (match[0].getInstruction() instanceof LDC2_W) {
-                firstNumber = (Number) ((LDC2_W) match[0].getInstruction()).getValue(cpgen);
-            }
-
-            if (match[3].getInstruction() instanceof ConstantPushInstruction) {
-                secondNumber = (Number) ((ConstantPushInstruction) match[3].getInstruction()).getValue();
-            } else if (match[3].getInstruction() instanceof LDC) {
-                secondNumber = (Number) ((LDC) match[3].getInstruction()).getValue(cpgen);
-            } else if (match[3].getInstruction() instanceof LDC2_W) {
-                secondNumber = (Number) ((LDC2_W) match[3].getInstruction()).getValue(cpgen);
-            }
-
-            if (match[5].getInstruction() instanceof ConstantPushInstruction) {
-                thirdNumber = (Number) ((ConstantPushInstruction) match[5].getInstruction()).getValue();
-            } else if (match[5].getInstruction() instanceof LDC) {
-                thirdNumber = (Number) ((LDC) match[5].getInstruction()).getValue(cpgen);
-            } else if (match[5].getInstruction() instanceof LDC2_W) {
-                thirdNumber = (Number) ((LDC2_W) match[5].getInstruction()).getValue(cpgen);
-            }
-
-            ArithmeticInstruction firstOperation = (ArithmeticInstruction) match[4].getInstruction();
-            ArithmeticInstruction secondOperation = (ArithmeticInstruction) match[6].getInstruction();
-
-            Double firstResult = foldOperation(firstOperation, firstNumber, secondNumber);
-            Double secondResult = foldOperation(secondOperation, firstResult, thirdNumber);
-            System.out.format("Folding to value %f\n", secondResult);
-
-            //Insert as a new constant into constant pool
-            int newPoolIndex;
-            if(((TypedInstruction)match[0].getInstruction()).getType(cpgen).getSignature().equals("D") || ((TypedInstruction)match[3].getInstruction()).getType(cpgen).getSignature().equals("D") || ((TypedInstruction)match[5].getInstruction()).getType(cpgen).getSignature().equals("D")) {
-                newPoolIndex = cpgen.addDouble(secondResult);
-            } else if(((TypedInstruction)match[0].getInstruction()).getType(cpgen).getSignature().equals("F") || ((TypedInstruction)match[3].getInstruction()).getType(cpgen).getSignature().equals("F") || ((TypedInstruction)match[5].getInstruction()).getType(cpgen).getSignature().equals("F")) {
-                newPoolIndex = cpgen.addFloat(secondResult.floatValue());
-            } else if(((TypedInstruction)match[0].getInstruction()).getType(cpgen).getSignature().equals("L") || ((TypedInstruction)match[3].getInstruction()).getType(cpgen).getSignature().equals("L") || ((TypedInstruction)match[5].getInstruction()).getType(cpgen).getSignature().equals("L")) {
-                newPoolIndex = cpgen.addLong(secondResult.longValue());
-            } else { //int
-                newPoolIndex = cpgen.addInteger(secondResult.intValue());
-            }
-
-            //Set unused constants to null
-            if (match[3].getInstruction() instanceof LDC || match[3].getInstruction() instanceof LDC2_W) {
-                cpgen.setConstant(((IndexedInstruction) match[3].getInstruction()).getIndex(), null);
-            }
-            if (match[5].getInstruction() instanceof LDC || match[5].getInstruction() instanceof LDC2_W) {
-                cpgen.setConstant(((IndexedInstruction) match[5].getInstruction()).getIndex(), null);
-            }
-
-            //Set left constant handle to point to new index
-            LDC newInstruction = new LDC(newPoolIndex);
-            match[3].setInstruction(newInstruction);
-
-            //Delete other handles
-            try {
-                instructionList.delete(match[2]);
-                instructionList.delete(match[4], match[6]);
-            } catch (TargetLostException e) {
-                e.printStackTrace();
-            }
-
-            System.out.println("==================================");
+            //TODO Remove useless Store Instructions.
         }
-        // END OF CONSTANT VARIABLE FOLDING TEST/PRACTICE
 
         for(InstructionHandle handle : instructionList.getInstructionHandles()) {
             //TODO When x is an integer type, the value of 0 * x is zero even if the compiler does not know the value of x.
@@ -294,6 +299,19 @@ public class ConstantFolder
         }
     }
 
+    private Number getConstantValue(InstructionHandle h, ConstantPoolGen cpgen) {
+        Number value = 0;
+
+        if (h.getInstruction() instanceof ConstantPushInstruction) {
+            value = (Number) ((ConstantPushInstruction) h.getInstruction()).getValue();
+        } else if (h.getInstruction() instanceof LDC) {
+            value = (Number) ((LDC) h.getInstruction()).getValue(cpgen);
+        } else if (h.getInstruction() instanceof LDC2_W) {
+            value = (Number) ((LDC2_W) h.getInstruction()).getValue(cpgen);
+        }
+
+        return value;
+    }
 	
 	public void write(String optimisedFilePath)
 	{
