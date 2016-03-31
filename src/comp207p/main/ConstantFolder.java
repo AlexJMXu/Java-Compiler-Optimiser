@@ -259,6 +259,12 @@ public class ConstantFolder
         }
     }
 
+    /**
+     * Get the value of a load instruction, e.g. iload_2
+     * @param h The load instruction fetch the value from
+     * @param cpgen Constant pool of the class
+     * @return Load instruction value
+     */
     private Number getLoadInstructionValue(InstructionHandle h, ConstantPoolGen cpgen) {
         Instruction instruction = h.getInstruction();
         if(!(instruction instanceof LoadInstruction)) {
