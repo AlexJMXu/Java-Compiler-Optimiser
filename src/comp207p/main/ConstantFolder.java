@@ -76,7 +76,7 @@ public class ConstantFolder
         InstructionFinder finder = new InstructionFinder(instructionList);
 
         //Regular expression matching string
-        String regExp = "(ConstantPushInstruction|LDC) (ConstantPushInstruction|LDC) ArithmeticInstruction";
+        String regExp = "(ConstantPushInstruction|LDC|LDC2_W) (ConstantPushInstruction|LDC|LDC2_W) ArithmeticInstruction";
 
         for(Iterator it = finder.search(regExp); it.hasNext();) {
             InstructionHandle[] match = (InstructionHandle[]) it.next();
@@ -140,7 +140,11 @@ public class ConstantFolder
             System.out.println("==================================");
             System.out.println("Found optimisable instruction set");
             for(InstructionHandle h : match) {
-                System.out.println(h.getInstruction());
+                if(h.getInstruction() instanceof LoadInstruction) {
+                    System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
+                } else {
+                    System.out.println(h);
+                }
             }
 
             Number firstNumber = 0, secondNumber = 0, thirdNumber = 0;
@@ -252,6 +256,35 @@ public class ConstantFolder
             return left.doubleValue() / right.doubleValue();    
         } else {
             throw new RuntimeException("Not supported operation");
+        }
+    }
+
+    private Number getLoadInstructionValue(InstructionHandle h, ConstantPoolGen cpgen) {
+        Instruction instruction = h.getInstruction();
+        if(!(instruction instanceof LoadInstruction)) {
+            throw new RuntimeException("InstructionHandle has to be of type LoadInstruction");
+        }
+
+        int localVariableIndex = ((LocalVariableInstruction) instruction).getIndex();
+
+        InstructionHandle handleIterator = h;
+        while(!(instruction instanceof StoreInstruction) || ((StoreInstruction) instruction).getIndex() != localVariableIndex) {
+            handleIterator = handleIterator.getPrev();
+            instruction = handleIterator.getInstruction();
+        }
+
+        //Go back previous one more additional time to fetch constant push instruction
+        handleIterator = handleIterator.getPrev();
+        instruction = handleIterator.getInstruction();
+
+        if(instruction instanceof ConstantPushInstruction) {
+            return ((ConstantPushInstruction) instruction).getValue();
+        } else if (instruction instanceof LDC) {
+            return (Number) ((LDC) instruction).getValue(cpgen);
+        } else if (instruction instanceof LDC2_W) {
+            return ((LDC2_W) instruction).getValue(cpgen);
+        } else {
+            throw new RuntimeException("Cannot fetch value for this type of object");
         }
     }
 
