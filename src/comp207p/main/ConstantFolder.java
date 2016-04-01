@@ -323,7 +323,7 @@ public class ConstantFolder
     }
 
     /**
-     * Get the value of a load instruction, e.g. iload_1
+     * Get the signature of a load instruction, e.g. iload_1 would return String "I"
      * @param h The load instruction fetch the value from
      * @param cpgen Constant pool of the class
      * @return Load instruction value signature
