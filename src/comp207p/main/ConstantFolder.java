@@ -297,11 +297,12 @@ public class ConstantFolder
             System.out.format("Folding to value %d\n", result);
 
             //Set left constant handle to point to new index
+            //1 -> 0 and 0 -> 1 because instructions do it that way
             if (result == 1) {
-                ICONST newInstruction = new ICONST(1);
+                ICONST newInstruction = new ICONST(0);
                 leftInstruction.setInstruction(newInstruction);
             } else if (result == 0) {
-                ICONST newInstruction = new ICONST(0);
+                ICONST newInstruction = new ICONST(1);
                 leftInstruction.setInstruction(newInstruction);
             } else {
                 ICONST newInstruction = new ICONST(-1);
