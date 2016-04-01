@@ -136,7 +136,7 @@ public class ConstantFolder
 
         // Simple Folding / Constant Variable Folding
         int optimiseCounter = 1;
-        String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConstantPushInstruction|CPInstruction|LoadInstruction) ArithmeticInstruction";
+        String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* (ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* ArithmeticInstruction";
         
         // Check if anymore optimisations can be made
         while (optimiseCounter > 0) {
@@ -160,9 +160,22 @@ public class ConstantFolder
                 }
 
                 Number leftValue = 0, rightValue = 0;
+                InstructionHandle leftInstruction, rightInstruction, operationInstruction;
 
-                InstructionHandle leftInstruction = match[0];
-                InstructionHandle rightInstruction = match[1];
+                leftInstruction = match[0];
+                if (match[1].getInstruction() instanceof ConversionInstruction) { 
+                    rightInstruction = match[2];
+                } else { 
+                    rightInstruction = match[1];
+                }
+
+                if (rightInstruction == match[2] && match[3].getInstruction() instanceof ConversionInstruction) {
+                    operationInstruction = match[4];
+                } else if (rightInstruction == match[2] || (rightInstruction == match[1] && match[2].getInstruction() instanceof ConversionInstruction)) {
+                    operationInstruction = match[3];
+                } else {
+                    operationInstruction = match[2];
+                }
 
                 if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) {
                     leftValue = getLoadInstructionValue(leftInstruction, cpgen);
@@ -178,7 +191,7 @@ public class ConstantFolder
                     rightValue =  getConstantValue(rightInstruction, cpgen);
                 }
 
-                ArithmeticInstruction operation = (ArithmeticInstruction) match[2].getInstruction();
+                ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
 
                 Double result = foldOperation(operation, leftValue, rightValue);
                 System.out.format("Folding to value %f\n", result);
@@ -219,7 +232,7 @@ public class ConstantFolder
 
                 //Delete other handles
                 try {
-                    instructionList.delete(match[1], match[2]);
+                    instructionList.delete(match[1], operationInstruction);
                 } catch (TargetLostException e) {
                     e.printStackTrace();
                 }
