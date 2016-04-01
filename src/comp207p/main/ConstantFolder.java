@@ -242,8 +242,6 @@ public class ConstantFolder
                 break;
             }
             optimiseCounter--;
-
-            //TODO Remove useless Store Instructions.
         }
 
         for(InstructionHandle handle : instructionList.getInstructionHandles()) {
