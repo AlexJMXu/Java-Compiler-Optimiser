@@ -164,7 +164,10 @@ public class ConstantFolder
                 InstructionHandle leftInstruction = match[0];
                 InstructionHandle rightInstruction = match[1];
 
-                if (leftInstruction.getInstruction() instanceof LoadInstruction) {
+                if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) {
+                    leftValue = getLoadInstructionValue(leftInstruction, cpgen);
+                    rightValue = getLoadInstructionValue(rightInstruction, cpgen);
+                } else if (leftInstruction.getInstruction() instanceof LoadInstruction) {
                     leftValue = getLoadInstructionValue(leftInstruction, cpgen);
                     rightValue = getConstantValue(rightInstruction, cpgen);
                 } else if (rightInstruction.getInstruction() instanceof LoadInstruction) {
@@ -182,14 +185,19 @@ public class ConstantFolder
 
                 //Insert as a new constant into constant pool
                 int newPoolIndex;
-                if(((TypedInstruction)leftInstruction.getInstruction()).getType(cpgen).getSignature().equals("D") || ((TypedInstruction)rightInstruction.getInstruction()).getType(cpgen).getSignature().equals("D")) {
+                int type;
+                if(checkSignature(leftInstruction, rightInstruction, cpgen, "D")) {
                     newPoolIndex = cpgen.addDouble(result);
-                } else if(((TypedInstruction)leftInstruction.getInstruction()).getType(cpgen).getSignature().equals("F") || ((TypedInstruction)rightInstruction.getInstruction()).getType(cpgen).getSignature().equals("F")) {
+                    type = 0;
+                } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "F")) {
                     newPoolIndex = cpgen.addFloat(result.floatValue());
-                } else if(((TypedInstruction)leftInstruction.getInstruction()).getType(cpgen).getSignature().equals("L") || ((TypedInstruction)rightInstruction.getInstruction()).getType(cpgen).getSignature().equals("L")) {
+                    type = 1;
+                } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "J")) {
                     newPoolIndex = cpgen.addLong(result.longValue());
+                    type = 2;
                 } else { //int
                     newPoolIndex = cpgen.addInteger(result.intValue());
+                    type = 3;
                 }
 
                 //Set unused constants to null
@@ -201,9 +209,13 @@ public class ConstantFolder
                 }
 
                 //Set left constant handle to point to new index
-                LDC newInstruction = new LDC(newPoolIndex);
-                leftInstruction.setInstruction(newInstruction);
-                System.out.println(getConstantValue(leftInstruction, cpgen));
+                if (type == 1 || type == 3) {
+                    LDC newInstruction = new LDC(newPoolIndex);
+                    leftInstruction.setInstruction(newInstruction);
+                } else {
+                    LDC2_W newInstruction = new LDC2_W(newPoolIndex);
+                    leftInstruction.setInstruction(newInstruction);
+                }
 
                 //Delete other handles
                 try {
@@ -298,6 +310,50 @@ public class ConstantFolder
             throw new RuntimeException("Cannot fetch value for this type of object");
         }
     }
+
+    private String getLoadInstructionSignature(InstructionHandle h, ConstantPoolGen cpgen) {
+        Instruction instruction = h.getInstruction();
+        if(!(instruction instanceof LoadInstruction)) {
+            throw new RuntimeException("InstructionHandle has to be of type LoadInstruction");
+        }
+
+        int localVariableIndex = ((LocalVariableInstruction) instruction).getIndex();
+
+        InstructionHandle handleIterator = h;
+        while(!(instruction instanceof StoreInstruction) || ((StoreInstruction) instruction).getIndex() != localVariableIndex) {
+            handleIterator = handleIterator.getPrev();
+            instruction = handleIterator.getInstruction();
+        }
+
+        //Go back previous one more additional time to fetch constant push instruction
+        handleIterator = handleIterator.getPrev();
+        instruction = handleIterator.getInstruction();
+
+        return ((TypedInstruction)instruction).getType(cpgen).getSignature();
+    }
+
+    private boolean checkSignature(InstructionHandle left, InstructionHandle right, ConstantPoolGen cpgen, String signature) {
+        if (left.getInstruction() instanceof LoadInstruction && right.getInstruction() instanceof LoadInstruction) {
+            if (getLoadInstructionSignature(left, cpgen).equals(signature) || getLoadInstructionSignature(right, cpgen).equals(signature)) {
+                return true;
+            }
+        } else if (left.getInstruction() instanceof LoadInstruction) {
+            if (getLoadInstructionSignature(left, cpgen).equals(signature) || ((TypedInstruction)right.getInstruction()).getType(cpgen).getSignature().equals(signature)) {
+                return true;
+            }
+        } else if (right.getInstruction() instanceof LoadInstruction) {
+            if (((TypedInstruction)left.getInstruction()).getType(cpgen).getSignature().equals(signature) || getLoadInstructionSignature(right, cpgen).equals(signature) ) {
+                return true;
+            }
+        } else {
+            if(((TypedInstruction)left.getInstruction()).getType(cpgen).getSignature().equals(signature) || ((TypedInstruction)right.getInstruction()).getType(cpgen).getSignature().equals(signature)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     private Number getConstantValue(InstructionHandle h, ConstantPoolGen cpgen) {
         Number value = 0;
