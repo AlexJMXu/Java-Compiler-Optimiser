@@ -531,9 +531,7 @@ public class ConstantFolder
         Constant[] constants = cp.getConstantPool();
         int constantCount = 0;
         for(Constant c : constants) {
-            if(c == null) continue;
-            if(c instanceof ConstantString) continue; // We don't care about strings
-            if(c instanceof ConstantUtf8) continue;
+            if((c == null) || (c instanceof ConstantString) || (c instanceof ConstantUtf8)) continue; //ignore these constant types
 
             System.out.println(c);
 
