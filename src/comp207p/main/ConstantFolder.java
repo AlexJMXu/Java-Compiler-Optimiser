@@ -35,17 +35,9 @@ public class ConstantFolder
 		ConstantPoolGen cpgen = cgen.getConstantPool();
 
         ConstantPool cp = cpgen.getConstantPool();
-        Constant[] constants = cp.getConstantPool();
         Method[] methods = cgen.getMethods();
 
-        //Print out constants for debugging
-        for(Constant c : constants) {
-            if(c == null) continue;
-            if(c instanceof ConstantString) continue; // We don't care about strings
-            if(c instanceof ConstantUtf8) continue;
-
-            System.out.println(c);
-        }
+        printConstants(cp);
 
         for(Method m : methods) {
             System.out.println(m); //Print method name
@@ -167,14 +159,17 @@ public class ConstantFolder
                     throw new RuntimeException("Type not defined");
                 }
 
-                //Set unused constants to null
                 //TODO Check if these constants are ACTUALLY unused first
+                //TODO Delete unused constants
+                /*
+                Setting it to writes wrongly formatted bytecode
                 if (leftInstruction.getInstruction() instanceof LDC || leftInstruction.getInstruction() instanceof LDC2_W) {
                     cpgen.setConstant(((IndexedInstruction) leftInstruction.getInstruction()).getIndex(), null);
                 }
                 if (rightInstruction.getInstruction() instanceof LDC || rightInstruction.getInstruction() instanceof LDC2_W) {
                     cpgen.setConstant(((IndexedInstruction) rightInstruction.getInstruction()).getIndex(), null);
                 }
+                */
 
                 //Set left constant handle to point to new index
                 if (type.equals("F") || type.equals("I")) {
@@ -191,8 +186,6 @@ public class ConstantFolder
                 } catch (TargetLostException e) {
                     e.printStackTrace();
                 }
-
-                System.out.println(methodGen.getMethod().getCode());
 
                 System.out.println("==================================");
 
@@ -351,6 +344,22 @@ public class ConstantFolder
         }
 
         return value;
+    }
+
+    /**
+     * Print out constants for debugging
+     * @param cp Constant Pool
+     */
+    private void printConstants(ConstantPool cp) {
+        Constant[] constants = cp.getConstantPool();
+
+        for(Constant c : constants) {
+            if(c == null) continue;
+            if(c instanceof ConstantString) continue; // We don't care about strings
+            if(c instanceof ConstantUtf8) continue;
+
+            System.out.println(c);
+        }
     }
 	
 	public void write(String optimisedFilePath)
