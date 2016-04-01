@@ -82,13 +82,6 @@ public class ConstantFolder
             optimiseCounter += optimiseComparisons(instructionList, cpgen);
         }
 
-        //Add StackMapTable
-        for (Attribute c : methodCode.getAttributes()) {
-            if(c instanceof StackMapTable) {
-                methodGen.addCodeAttribute((Attribute) c.clone());
-            }
-        }
-
         // setPositions(true) checks whether jump handles
         // are all within the current method
         instructionList.setPositions(true);
