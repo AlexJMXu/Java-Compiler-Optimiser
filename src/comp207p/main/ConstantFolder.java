@@ -311,6 +311,12 @@ public class ConstantFolder
         }
     }
 
+    /**
+     * Get the value of a load instruction, e.g. iload_1
+     * @param h The load instruction fetch the value from
+     * @param cpgen Constant pool of the class
+     * @return Load instruction value signature
+     */
     private String getLoadInstructionSignature(InstructionHandle h, ConstantPoolGen cpgen) {
         Instruction instruction = h.getInstruction();
         if(!(instruction instanceof LoadInstruction)) {
@@ -332,6 +338,14 @@ public class ConstantFolder
         return ((TypedInstruction)instruction).getType(cpgen).getSignature();
     }
 
+    /**
+     * Compare signatures of types of values from left and right instructions to specified signature, e.g. "D"
+     * @param left Left InstructionHandle e.g iload_1, LDC
+     * @param right Refer to left
+     * @param cpgen Constant pool of the class
+     * @param signature The specified String (Signature of Type) to compare
+     * @return true or false
+     */
     private boolean checkSignature(InstructionHandle left, InstructionHandle right, ConstantPoolGen cpgen, String signature) {
         if (left.getInstruction() instanceof LoadInstruction && right.getInstruction() instanceof LoadInstruction) {
             if (getLoadInstructionSignature(left, cpgen).equals(signature) || getLoadInstructionSignature(right, cpgen).equals(signature)) {
@@ -354,7 +368,12 @@ public class ConstantFolder
         return false;
     }
 
-
+    /**
+     * get Number value from InstructionHandle
+     * @param h The load instruction fetch the value from
+     * @param cpgen Constant pool of the class
+     * @return InstructionHandle value
+     */
     private Number getConstantValue(InstructionHandle h, ConstantPoolGen cpgen) {
         Number value = 0;
 
