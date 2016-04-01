@@ -294,20 +294,22 @@ public class ConstantFolder
                 result = checkSecondComparison(comparison, result);
             }
 
-            System.out.format("Folding to value %d\n", result);
-
             //Set left constant handle to point to new index
             //1 -> 0 and 0 -> 1 because instructions do it that way
             if (result == 1) {
                 ICONST newInstruction = new ICONST(0);
                 leftInstruction.setInstruction(newInstruction);
+                result = 0;
             } else if (result == 0) {
                 ICONST newInstruction = new ICONST(1);
                 leftInstruction.setInstruction(newInstruction);
+                result = 1;
             } else {
                 ICONST newInstruction = new ICONST(-1);
                 leftInstruction.setInstruction(newInstruction);
             }
+
+            System.out.format("Folding return value to %d\n", result);
 
             //Delete other handles
             try {
