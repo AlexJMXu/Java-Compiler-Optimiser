@@ -162,7 +162,7 @@ public class ConstantFolder
                     type = "I";
                 } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "B")) {
                     newPoolIndex = cpgen.addInteger(result.intValue());
-                    type = "I";
+                    type = "I"; //Promote byte to integer
                 } else {
                     throw new RuntimeException("Type not defined");
                 }
@@ -192,8 +192,6 @@ public class ConstantFolder
                     e.printStackTrace();
                 }
 
-
-                System.out.println(cpgen.getConstantPool());
                 System.out.println(methodGen.getMethod().getCode());
 
                 System.out.println("==================================");
