@@ -81,6 +81,9 @@ public class ConstantFolder
             optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen);
         }
 
+        // COMMENTED OUT UNTIL ISSUES ARE FIXED
+        //optimiseComparisons(instructionList, cpgen);
+
         // setPositions(true) checks whether jump handles
         // are all within the current method
         instructionList.setPositions(true);
@@ -225,32 +228,12 @@ public class ConstantFolder
         return changeCounter;
     }
 
-    private void optimiseComparisons(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
-        Code methodCode = method.getCode();
-
-        if(methodCode != null) { // Non-abstract method
-            System.out.println(methodCode);
-        }
-
-        InstructionList instructionList = new InstructionList(methodCode.getCode());
-
-        // Initialise a method generator with the original method as the baseline
-        MethodGen methodGen = new MethodGen(
-                method.getAccessFlags(),
-                method.getReturnType(),
-                method.getArgumentTypes(),
-                null, method.getName(),
-                cgen.getClassName(),
-                instructionList,
-                cpgen
-        );
-
-        // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
-        InstructionFinder finder = new InstructionFinder(instructionList);
-
+    private void optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) {
         String regExp = "((ConstantPushInstruction|CPInstruction|LoadInstruction)" +
                         " (ConstantPushInstruction|CPInstruction|LoadInstruction)" +
                         " (LCMP|DCMPG|DCMPL|FCMPG|FCMPL)* IfInstruction ICONST GOTO ICONST";
+
+        InstructionFinder finder = new InstructionFinder(instructionList);
 
         for(Iterator it = finder.search(regExp); it.hasNext();) {
             InstructionHandle[] match = (InstructionHandle[]) it.next();
@@ -326,23 +309,6 @@ public class ConstantFolder
             }
 
             System.out.println("==================================");
-
-            // setPositions(true) checks whether jump handles
-            // are all within the current method
-            instructionList.setPositions(true);
-
-            // set max stack/local
-            methodGen.setMaxStack();
-            methodGen.setMaxLocals();
-
-            // generate the new method with optimised instructions
-            Method newMethod = methodGen.getMethod();
-
-            System.out.println("Fully optimised instruction set:");
-            System.out.println(newMethod.getCode());
-
-            // replace the method in the original class
-            cgen.replaceMethod(method, newMethod);
         }
     }
 
