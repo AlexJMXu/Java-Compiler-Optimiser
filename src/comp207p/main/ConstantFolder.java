@@ -38,12 +38,13 @@ public class ConstantFolder
         Constant[] constants = cp.getConstantPool();
         Method[] methods = cgen.getMethods();
 
+        //Print out constants for debugging
         for(Constant c : constants) {
             if(c == null) continue;
             if(c instanceof ConstantString) continue; // We don't care about strings
             if(c instanceof ConstantUtf8) continue;
 
-            System.out.println(c); //Print out constants
+            System.out.println(c);
         }
 
         for(Method m : methods) {
@@ -69,7 +70,15 @@ public class ConstantFolder
         InstructionList instructionList = new InstructionList(methodCode.getCode());
 
         // Initialise a method generator with the original method as the baseline
-        MethodGen methodGen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), instructionList, cpgen);
+        MethodGen methodGen = new MethodGen(
+                method.getAccessFlags(),
+                method.getReturnType(),
+                method.getArgumentTypes(),
+                null, method.getName(),
+                cgen.getClassName(),
+                instructionList,
+                cpgen
+        );
 
         // Simple Folding / Constant Variable Folding
         int optimiseCounter = 1;
@@ -78,6 +87,7 @@ public class ConstantFolder
                         "ArithmeticInstruction";
         
         // Check if anymore optimisations can be made
+
         while (optimiseCounter > 0) {
             optimiseCounter = 0;
             // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
@@ -137,22 +147,25 @@ public class ConstantFolder
 
                 //Insert as a new constant into constant pool
                 int newPoolIndex;
-                int type;
+                String type;
                 if(checkSignature(leftInstruction, rightInstruction, cpgen, "D")) {
                     newPoolIndex = cpgen.addDouble(result);
-                    type = 0;
+                    type = "D";
                 } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "F")) {
                     newPoolIndex = cpgen.addFloat(result.floatValue());
-                    type = 1;
-                } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "J")) {
+                    type = "F";
+                } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "J")) { //J is the signature for long, wtf
                     newPoolIndex = cpgen.addLong(result.longValue());
-                    type = 2;
-                } else { //int
+                    type = "J";
+                } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "I")) { //int
                     newPoolIndex = cpgen.addInteger(result.intValue());
-                    type = 3;
+                    type = "I";
+                } else {
+                    throw new RuntimeException("Type not defined");
                 }
 
                 //Set unused constants to null
+                //TODO Check if these constants are ACTUALLY unused first
                 if (leftInstruction.getInstruction() instanceof LDC || leftInstruction.getInstruction() instanceof LDC2_W) {
                     cpgen.setConstant(((IndexedInstruction) leftInstruction.getInstruction()).getIndex(), null);
                 }
@@ -161,7 +174,7 @@ public class ConstantFolder
                 }
 
                 //Set left constant handle to point to new index
-                if (type == 1 || type == 3) {
+                if (type.equals("F") || type.equals("J")) {
                     LDC newInstruction = new LDC(newPoolIndex);
                     leftInstruction.setInstruction(newInstruction);
                 } else {
@@ -176,16 +189,13 @@ public class ConstantFolder
                     e.printStackTrace();
                 }
 
+
+                System.out.println(cpgen.getConstantPool());
+                System.out.println(methodGen.getMethod().getCode());
+
                 System.out.println("==================================");
 
                 break;
-            }
-        }
-
-        for(InstructionHandle handle : instructionList.getInstructionHandles()) {
-            //TODO When x is an integer type, the value of 0 * x is zero even if the compiler does not know the value of x.
-
-            if(handle.getInstruction() instanceof LDC) {
             }
         }
 
@@ -199,6 +209,9 @@ public class ConstantFolder
 
         // generate the new method with optimised instructions
         Method newMethod = methodGen.getMethod();
+
+        System.out.println("Fully optimised instruction set:");
+        System.out.println(newMethod.getCode());
 
         // replace the method in the original class
         cgen.replaceMethod(method, newMethod);
