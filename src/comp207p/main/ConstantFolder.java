@@ -71,76 +71,15 @@ public class ConstantFolder
         // Initialise a method generator with the original method as the baseline
         MethodGen methodGen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), instructionList, cpgen);
 
-        // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
-        // instruction. E.g. IADD, DMUL, etc.
-        // InstructionFinder finder = new InstructionFinder(instructionList);
-
-        //Regular expression matching string
-        /*
-         * OLD CODE COMMENTED OUT FOR NOW JUST IN CASE
-
-        String regExp = "(ConstantPushInstruction|LDC|LDC2_W) (ConstantPushInstruction|LDC|LDC2_W) ArithmeticInstruction";
-
-        for(Iterator it = finder.search(regExp); it.hasNext();) {
-            InstructionHandle[] match = (InstructionHandle[]) it.next();
-
-            //Debug output
-            System.out.println("==================================");
-            System.out.println("Found optimisable instruction set");
-            for(InstructionHandle h : match) {
-                System.out.println(h);
-            }
-
-            LDC left = (LDC) match[0].getInstruction();
-            LDC right = (LDC) match[1].getInstruction();
-            ArithmeticInstruction operation = (ArithmeticInstruction) match[2].getInstruction();
-
-            System.out.format("Left: %s %s\n", left.getValue(cpgen), left.getType(cpgen));
-            System.out.format("Operator: %s\n", operation);
-            System.out.format("Right: %s %s\n", right.getValue(cpgen), right.getType(cpgen));
-
-            Double result = foldOperation(operation,(Number) left.getValue(cpgen), (Number) right.getValue(cpgen));
-            System.out.format("Folding to value %f\n", result);
-
-            //Insert as a new constant into constant pool
-            int newPoolIndex;
-            if(left.getType(cpgen).getSignature().equals("D") || (right.getType(cpgen).getSignature().equals("D"))) {
-                newPoolIndex = cpgen.addDouble(result);
-            } else if(left.getType(cpgen).getSignature().equals("F") || (right.getType(cpgen).getSignature().equals("F"))) {
-                newPoolIndex = cpgen.addFloat(result.floatValue());
-            } else if(left.getType(cpgen).getSignature().equals("L") || (right.getType(cpgen).getSignature().equals("L"))) {
-                newPoolIndex = cpgen.addLong(result.longValue());
-            } else { //int
-                newPoolIndex = cpgen.addInteger(result.intValue());
-            }
-
-            //Set unused constants to null
-            cpgen.setConstant(left.getIndex(), null);
-            cpgen.setConstant(right.getIndex(), null);
-
-            //Set left constant handle to point to new index
-            left.setIndex(newPoolIndex);
-
-            //Delete other handles
-            try {
-                instructionList.delete(match[1], match[2]);
-            } catch (TargetLostException e) {
-                e.printStackTrace();
-            }
-
-            //TODO Delete unused constants?
-            //unused constants currently just set to null
-            System.out.println("==================================");
-        }
-        */
-
         // Simple Folding / Constant Variable Folding
         int optimiseCounter = 1;
-        String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* (ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* ArithmeticInstruction";
+        String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* " +
+                        "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* " +
+                        "ArithmeticInstruction";
         
         // Check if anymore optimisations can be made
         while (optimiseCounter > 0) {
-
+            optimiseCounter = 0;
             // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
             InstructionFinder finder = new InstructionFinder(instructionList);
 
@@ -150,7 +89,7 @@ public class ConstantFolder
                 //Debug output
                 System.out.println("==================================");
                 System.out.println("Found optimisable instruction set");
-                optimiseCounter++; // Optimisation found, will iterate through instructions again to check if anymore optimisations can be made 
+                optimiseCounter++; // Optimisation found, iterate through instructions again to look for more optimisation
                 for(InstructionHandle h : match) {
                     if(h.getInstruction() instanceof LoadInstruction) {
                         System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
@@ -159,13 +98,13 @@ public class ConstantFolder
                     }
                 }
 
-                Number leftValue = 0, rightValue = 0;
+                Number leftValue, rightValue;
                 InstructionHandle leftInstruction, rightInstruction, operationInstruction;
 
                 leftInstruction = match[0];
                 if (match[1].getInstruction() instanceof ConversionInstruction) { 
                     rightInstruction = match[2];
-                } else { 
+                } else {
                     rightInstruction = match[1];
                 }
 
@@ -241,7 +180,6 @@ public class ConstantFolder
 
                 break;
             }
-            optimiseCounter--;
         }
 
         for(InstructionHandle handle : instructionList.getInstructionHandles()) {
@@ -386,14 +324,16 @@ public class ConstantFolder
      * @return InstructionHandle value
      */
     private Number getConstantValue(InstructionHandle h, ConstantPoolGen cpgen) {
-        Number value = 0;
+        Number value;
 
         if (h.getInstruction() instanceof ConstantPushInstruction) {
-            value = (Number) ((ConstantPushInstruction) h.getInstruction()).getValue();
+            value = ((ConstantPushInstruction) h.getInstruction()).getValue();
         } else if (h.getInstruction() instanceof LDC) {
             value = (Number) ((LDC) h.getInstruction()).getValue(cpgen);
         } else if (h.getInstruction() instanceof LDC2_W) {
-            value = (Number) ((LDC2_W) h.getInstruction()).getValue(cpgen);
+            value = ((LDC2_W) h.getInstruction()).getValue(cpgen);
+        } else {
+            throw new RuntimeException();
         }
 
         return value;
