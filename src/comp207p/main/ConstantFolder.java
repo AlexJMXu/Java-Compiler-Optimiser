@@ -79,10 +79,10 @@ public class ConstantFolder
             optimiseCounter = 0;
 
             optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen);
+            optimiseCounter += optimiseComparisons(instructionList, cpgen);
         }
 
         // COMMENTED OUT UNTIL ISSUES ARE FIXED
-        //optimiseComparisons(instructionList, cpgen);
 
         // setPositions(true) checks whether jump handles
         // are all within the current method
@@ -123,7 +123,7 @@ public class ConstantFolder
 
             //Debug output
             System.out.println("==================================");
-            System.out.println("Found optimisable instruction set");
+            System.out.println("Found optimisable arithmetic set");
             changeCounter++; // Optimisation found, iterate through instructions again to look for more optimisation
             for(InstructionHandle h : match) {
                 if(h.getInstruction() instanceof LoadInstruction) {
@@ -228,7 +228,8 @@ public class ConstantFolder
         return changeCounter;
     }
 
-    private void optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) {
+    private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) {
+        int changeCounter = 0;
         String regExp = "((ConstantPushInstruction|CPInstruction|LoadInstruction)" +
                         " (ConstantPushInstruction|CPInstruction|LoadInstruction)" +
                         " (LCMP|DCMPG|DCMPL|FCMPG|FCMPL)* IfInstruction ICONST GOTO ICONST";
@@ -240,7 +241,8 @@ public class ConstantFolder
 
             //Debug output
             System.out.println("==================================");
-            System.out.println("Found optimisable instruction set");
+            System.out.println("Found optimisable comparison set");
+            changeCounter++; 
             for(InstructionHandle h : match) {
                 if(h.getInstruction() instanceof LoadInstruction) {
                     System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
@@ -309,7 +311,10 @@ public class ConstantFolder
             }
 
             System.out.println("==================================");
+            break;
         }
+
+        return changeCounter;
     }
 
     private int checkIntComparison(IfInstruction comparison, Number leftValue, Number rightValue) {
