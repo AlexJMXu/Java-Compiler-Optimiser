@@ -79,7 +79,7 @@ public class ConstantFolder
         while (optimiseCounter > 0) {
             optimiseCounter = 0;
 
-            optimiseCounter+= optimiseArithmeticOperation(instructionList, cpgen);
+            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen);
         }
 
         // setPositions(true) checks whether jump handles
