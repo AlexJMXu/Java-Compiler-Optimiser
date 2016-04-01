@@ -230,9 +230,9 @@ public class ConstantFolder
 
     private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) {
         int changeCounter = 0;
-        String regExp = "((ConstantPushInstruction|CPInstruction|LoadInstruction)" +
-                        " (ConstantPushInstruction|CPInstruction|LoadInstruction)" +
-                        " (LCMP|DCMPG|DCMPL|FCMPG|FCMPL)* IfInstruction ICONST GOTO ICONST";
+        String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction)" +
+                        "(ConstantPushInstruction|CPInstruction|LoadInstruction)" +
+                        "(LCMP|DCMPG|DCMPL|FCMPG|FCMPL)* IfInstruction ICONST GOTO ICONST";
 
         InstructionFinder finder = new InstructionFinder(instructionList);
 
