@@ -160,6 +160,9 @@ public class ConstantFolder
                 } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "I")) { //int
                     newPoolIndex = cpgen.addInteger(result.intValue());
                     type = "I";
+                } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "B")) {
+                    newPoolIndex = cpgen.addInteger(result.intValue());
+                    type = "I";
                 } else {
                     throw new RuntimeException("Type not defined");
                 }
@@ -174,7 +177,7 @@ public class ConstantFolder
                 }
 
                 //Set left constant handle to point to new index
-                if (type.equals("F") || type.equals("J")) {
+                if (type.equals("F") || type.equals("I")) {
                     LDC newInstruction = new LDC(newPoolIndex);
                     leftInstruction.setInstruction(newInstruction);
                 } else {
