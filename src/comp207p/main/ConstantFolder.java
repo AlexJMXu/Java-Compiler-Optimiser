@@ -43,7 +43,6 @@ public class ConstantFolder
             System.out.println(m); //Print method name
 
             optimiseMethod(cgen, cpgen, m);
-
         }
         
 		this.optimized = cgen.getJavaClass();
@@ -224,6 +223,197 @@ public class ConstantFolder
         }
 
         return changeCounter;
+    }
+
+    private void optimiseComparisons(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
+        Code methodCode = method.getCode();
+
+        if(methodCode != null) { // Non-abstract method
+            System.out.println(methodCode);
+        }
+
+        InstructionList instructionList = new InstructionList(methodCode.getCode());
+
+        // Initialise a method generator with the original method as the baseline
+        MethodGen methodGen = new MethodGen(
+                method.getAccessFlags(),
+                method.getReturnType(),
+                method.getArgumentTypes(),
+                null, method.getName(),
+                cgen.getClassName(),
+                instructionList,
+                cpgen
+        );
+
+        // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
+        InstructionFinder finder = new InstructionFinder(instructionList);
+
+        String regExp = "((ConstantPushInstruction|CPInstruction|LoadInstruction)" +
+                        " (ConstantPushInstruction|CPInstruction|LoadInstruction)" +
+                        " (LCMP|DCMPG|DCMPL|FCMPG|FCMPL)* IfInstruction ICONST GOTO ICONST";
+
+        for(Iterator it = finder.search(regExp); it.hasNext();) {
+            InstructionHandle[] match = (InstructionHandle[]) it.next();
+
+            //Debug output
+            System.out.println("==================================");
+            System.out.println("Found optimisable instruction set");
+            for(InstructionHandle h : match) {
+                if(h.getInstruction() instanceof LoadInstruction) {
+                    System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
+                } else {
+                    System.out.println(h);
+                }
+            }
+
+            Number leftValue, rightValue;
+            InstructionHandle leftInstruction, rightInstruction, compare = null, comparisonInstruction;
+
+            leftInstruction = match[0];
+            rightInstruction = match[1];
+
+            if (match[2].getInstruction() instanceof IfInstruction) {
+                comparisonInstruction = match[2];
+            } else {
+                compare = match[2];
+                comparisonInstruction = match[3];
+            }
+
+            if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) {
+                leftValue = getLoadInstructionValue(leftInstruction, cpgen);
+                rightValue = getLoadInstructionValue(rightInstruction, cpgen);
+            } else if (leftInstruction.getInstruction() instanceof LoadInstruction) {
+                leftValue = getLoadInstructionValue(leftInstruction, cpgen);
+                rightValue = getConstantValue(rightInstruction, cpgen);
+            } else if (rightInstruction.getInstruction() instanceof LoadInstruction) {
+                leftValue = getConstantValue(leftInstruction, cpgen);
+                rightValue = getLoadInstructionValue(rightInstruction, cpgen);
+            } else {
+                leftValue = getConstantValue(leftInstruction, cpgen);
+                rightValue =  getConstantValue(rightInstruction, cpgen);
+            }
+
+            IfInstruction comparison = (IfInstruction) comparisonInstruction.getInstruction();
+
+            int result = 0;
+
+            if (comparisonInstruction == match[2]) {
+                result = checkIntComparison(comparison, leftValue, rightValue);
+            } else {
+                result = checkFirstComparison(compare, leftValue, rightValue);
+                result = checkSecondComparison(comparison, result);
+            }
+
+            System.out.format("Folding to value %d\n", result);
+
+            //Set left constant handle to point to new index
+            if (result == 1) {
+                ICONST newInstruction = new ICONST(1);
+                leftInstruction.setInstruction(newInstruction);
+            } else if (result == 0) {
+                ICONST newInstruction = new ICONST(0);
+                leftInstruction.setInstruction(newInstruction);
+            } else {
+                ICONST newInstruction = new ICONST(-1);
+                leftInstruction.setInstruction(newInstruction);
+            }
+
+            //Delete other handles
+            try {
+                instructionList.delete(match[1], match[match.length-1]);
+            } catch (TargetLostException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("==================================");
+
+            // setPositions(true) checks whether jump handles
+            // are all within the current method
+            instructionList.setPositions(true);
+
+            // set max stack/local
+            methodGen.setMaxStack();
+            methodGen.setMaxLocals();
+
+            // generate the new method with optimised instructions
+            Method newMethod = methodGen.getMethod();
+
+            System.out.println("Fully optimised instruction set:");
+            System.out.println(newMethod.getCode());
+
+            // replace the method in the original class
+            cgen.replaceMethod(method, newMethod);
+        }
+    }
+
+    private int checkIntComparison(IfInstruction comparison, Number leftValue, Number rightValue) {
+        if (comparison instanceof IF_ICMPEQ) { // if value 1 equals value 2
+            if (leftValue.intValue() == rightValue.intValue()) return 1;
+            else return 0;
+        } else if (comparison instanceof IF_ICMPGE) { // if value 1 greater than or equal to to value 2
+            if (leftValue.intValue() >= rightValue.intValue()) return 1;
+            else return 0;
+        } else if (comparison instanceof IF_ICMPGT) { // if value 1 greater than value 2
+            if (leftValue.intValue() > rightValue.intValue()) return 1;
+            else return 0;
+        } else if (comparison instanceof IF_ICMPLE) { // if value 1 less than or equal to value 2
+            if (leftValue.intValue() <= rightValue.intValue()) return 1;
+            else return 0;
+        } else if (comparison instanceof IF_ICMPLT) { // if value 1 less than value 2
+            if (leftValue.intValue() < rightValue.intValue()) return 1;
+            else return 0;
+        } else if (comparison instanceof IF_ICMPNE) { // if value 1 not equal to value 2
+            if (leftValue.intValue() != rightValue.intValue()) return 1;
+            else return 0;
+        } else {
+            throw new RuntimeException("Comparison not defined");
+        }
+    }
+
+    private int checkFirstComparison(InstructionHandle comparison, Number leftValue, Number rightValue) {
+        if (comparison.getInstruction() instanceof DCMPG) {
+            if (leftValue.doubleValue() > rightValue.doubleValue()) return 1;
+            else return 0;
+        } else if (comparison.getInstruction()  instanceof DCMPL) {
+            if (leftValue.doubleValue() < rightValue.doubleValue()) return 1;
+            else return 0;
+        } else if (comparison.getInstruction()  instanceof FCMPG) {
+            if (leftValue.floatValue() > rightValue.floatValue()) return 1;
+            else return 0;
+        } else if (comparison.getInstruction()  instanceof FCMPL) {
+            if (leftValue.floatValue() < rightValue.floatValue()) return 1;
+            else return 0;
+        } else if (comparison.getInstruction()  instanceof LCMP) {
+            if (leftValue.longValue() == rightValue.longValue()) return 0;
+            else if (leftValue.longValue() > rightValue.longValue()) return 1;
+            else return -1;
+        } else {
+            throw new RuntimeException("Comparison not defined");
+        }
+    }
+
+    private int checkSecondComparison(IfInstruction comparison, int value) {
+        if (comparison instanceof IFEQ) {
+            if (value == 0) return 1;
+            else return 0;
+        } else if (comparison instanceof IFGE) {
+            if (value >= 0) return 1;
+            else return 0;
+        } else if (comparison instanceof IFGT) {
+            if (value > 0) return 1;
+            else return 0;
+        } else if (comparison instanceof IFLE) {
+            if (value <= 0) return 1;
+            else return 0;
+        } else if (comparison instanceof IFLT) {
+            if (value < 0) return 1;
+            else return 0;
+        } else if (comparison instanceof IFNE) {
+            if (value != 0) return 1;
+            else return 0;
+        } else {
+            throw new RuntimeException("Comparison not defined");
+        }
     }
 
     /**
