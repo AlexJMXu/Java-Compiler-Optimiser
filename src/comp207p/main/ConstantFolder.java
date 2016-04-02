@@ -190,7 +190,6 @@ public class ConstantFolder
 
             if (match[match.length-1].getInstruction() instanceof GotoInstruction && (match[match.length-2].getInstruction() instanceof IINC || match[match.length-2].getInstruction() instanceof ISTORE)) { //Recognise for loops, stops at ISTORE for second condition as no need to check further
                 gotoInstruction = (GotoInstruction) match[match.length-1].getInstruction();
-                if (((BranchInstruction)gotoInstruction).getTarget() != leftInstruction && ((BranchInstruction)gotoInstruction).getTarget() != rightInstruction) {
                     System.out.println("For loop variable detected, no folding will occur.");
                     System.out.println("==================================");
                     changeCounter--;
