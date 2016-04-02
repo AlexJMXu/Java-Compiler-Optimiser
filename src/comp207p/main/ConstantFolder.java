@@ -192,8 +192,6 @@ public class ConstantFolder
                     System.out.println("For loop variable detected, no folding will occur.");
                     System.out.println("==================================");
                     changeCounter--;
-                    it = finder.search(regExp, match[match.length-1]);
-                    finder.reread();
                     continue;
                 }
             }
