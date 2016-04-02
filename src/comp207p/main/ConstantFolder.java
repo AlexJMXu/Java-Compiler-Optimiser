@@ -29,10 +29,26 @@ public class ConstantFolder
 		}
 	}
 	
+    public void write(String optimisedFilePath)
+    {
+        this.optimize();
+
+        try {
+            FileOutputStream out = new FileOutputStream(new File(optimisedFilePath));
+            this.optimized.dump(out);
+        } catch (FileNotFoundException e) {
+            // Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
 	public void optimize()
 	{
 		ClassGen cgen = new ClassGen(original);
-        cgen.setMajor(50);
+        cgen.setMajor(50); //Set major version number of class file to 50 (instead of default 45) to eliminate StackMapFrame errors
 		ConstantPoolGen cpgen = cgen.getConstantPool();
 
         ConstantPool cp = cpgen.getConstantPool();
@@ -43,7 +59,7 @@ public class ConstantFolder
         for(Method m : methods) {
             System.out.println(m); //Print method name
 
-            optimiseMethod(cgen, cpgen, m);
+            optimiseMethod(cgen, cpgen, m); //Optimise each method
         }
         
 		this.optimized = cgen.getJavaClass();
@@ -56,7 +72,7 @@ public class ConstantFolder
         Code methodCode = method.getCode();
 
         if(methodCode != null) { // Non-abstract method
-            System.out.println(methodCode);
+            System.out.println("Method code: " +  methodCode);
         }
 
         InstructionList instructionList = new InstructionList(methodCode.getCode());
@@ -72,15 +88,13 @@ public class ConstantFolder
                 cpgen
         );
 
-        // Simple Folding / Constant Variable Folding
         int optimiseCounter = 1;
         
         // Run in while loop until no more optimisations can be made
         while (optimiseCounter > 0) {
             optimiseCounter = 0;
-
-            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen);
-            optimiseCounter += optimiseComparisons(instructionList, cpgen);
+            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen); //Add number of arithmetic optimisations made
+            optimiseCounter += optimiseComparisons(instructionList, cpgen); //Add number of comparison optimisations made
         }
 
         // setPositions(true) checks whether jump handles
@@ -117,14 +131,14 @@ public class ConstantFolder
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         InstructionFinder finder = new InstructionFinder(instructionList);
 
-        for(Iterator it = finder.search(regExp); it.hasNext();) {
-            InstructionHandle[] match = (InstructionHandle[]) it.next();
+        for(Iterator it = finder.search(regExp); it.hasNext();) { // Iterate through instructions to look for arithmetic optimisation
+            InstructionHandle[] match = (InstructionHandle[]) it.next(); 
 
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable arithmetic set");
-            changeCounter++; // Optimisation found, iterate through instructions again to look for more optimisation
-            for(InstructionHandle h : match) {
+            changeCounter++; // Optimisation found
+            for(InstructionHandle h : match) { 
                 if(h.getInstruction() instanceof LoadInstruction) {
                     System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
                 } else {
@@ -135,31 +149,32 @@ public class ConstantFolder
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, operationInstruction;
 
-            leftInstruction = match[0];
-            if (match[1].getInstruction() instanceof ConversionInstruction) {
-                rightInstruction = match[2];
+            //Get instructions
+            leftInstruction = match[0]; //Left instruction is always first match
+            if (match[1].getInstruction() instanceof ConversionInstruction) { 
+                rightInstruction = match[2]; //If conversion exists for left, then right instruction occurs after it
             } else {
-                rightInstruction = match[1];
+                rightInstruction = match[1]; //No conversion instruction for left
+            }
+            if (rightInstruction == match[2] && match[3].getInstruction() instanceof ConversionInstruction) { //If left has conversion and conversion exists for right
+                operationInstruction = match[4]; 
+            } else if (rightInstruction == match[2] || (rightInstruction == match[1] && match[2].getInstruction() instanceof ConversionInstruction)) { //Left has conversion or right has conversion
+                operationInstruction = match[3]; 
+            } else {
+                operationInstruction = match[2]; //No conversion for either instruction
             }
 
-            if (rightInstruction == match[2] && match[3].getInstruction() instanceof ConversionInstruction) {
-                operationInstruction = match[4];
-            } else if (rightInstruction == match[2] || (rightInstruction == match[1] && match[2].getInstruction() instanceof ConversionInstruction)) {
-                operationInstruction = match[3];
-            } else {
-                operationInstruction = match[2];
-            }
-
-            if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) {
+            //Get values
+            if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) { //If both instructions are loading values
                 leftValue = getLoadInstructionValue(leftInstruction, cpgen);
                 rightValue = getLoadInstructionValue(rightInstruction, cpgen);
-            } else if (leftInstruction.getInstruction() instanceof LoadInstruction) {
+            } else if (leftInstruction.getInstruction() instanceof LoadInstruction) { //If left is loading value
                 leftValue = getLoadInstructionValue(leftInstruction, cpgen);
                 rightValue = getConstantValue(rightInstruction, cpgen);
-            } else if (rightInstruction.getInstruction() instanceof LoadInstruction) {
+            } else if (rightInstruction.getInstruction() instanceof LoadInstruction) { //If right is loading value
                 leftValue = getConstantValue(leftInstruction, cpgen);
                 rightValue = getLoadInstructionValue(rightInstruction, cpgen);
-            } else {
+            } else { //No load instructions
                 leftValue = getConstantValue(leftInstruction, cpgen);
                 rightValue =  getConstantValue(rightInstruction, cpgen);
             }
@@ -171,7 +186,8 @@ public class ConstantFolder
 
             //Insert as a new constant into constant pool
             int newPoolIndex;
-            String type;
+            String type; 
+            //Identify the type of the constant
             if(checkSignature(leftInstruction, rightInstruction, cpgen, "D")) {
                 newPoolIndex = cpgen.addDouble(result);
                 type = "D";
@@ -191,23 +207,11 @@ public class ConstantFolder
                 throw new RuntimeException("Type not defined");
             }
 
-            //TODO Check if these constants are ACTUALLY unused first, have to also check other methods
-            //TODO Delete unused constants
-                /*
-                Setting it to writes wrongly formatted bytecode
-                if (leftInstruction.getInstruction() instanceof LDC || leftInstruction.getInstruction() instanceof LDC2_W) {
-                    cpgen.setConstant(((IndexedInstruction) leftInstruction.getInstruction()).getIndex(), null);
-                }
-                if (rightInstruction.getInstruction() instanceof LDC || rightInstruction.getInstruction() instanceof LDC2_W) {
-                    cpgen.setConstant(((IndexedInstruction) rightInstruction.getInstruction()).getIndex(), null);
-                }
-                */
-
             //Set left constant handle to point to new index
-            if (type.equals("F") || type.equals("I")) {
+            if (type.equals("F") || type.equals("I")) { //Float or integer
                 LDC newInstruction = new LDC(newPoolIndex);
                 leftInstruction.setInstruction(newInstruction);
-            } else {
+            } else { //Types larger than integer use LDC2_W
                 LDC2_W newInstruction = new LDC2_W(newPoolIndex);
                 leftInstruction.setInstruction(newInstruction);
             }
@@ -508,7 +512,7 @@ public class ConstantFolder
      * @param cpgen Constant pool of the class
      * @return InstructionHandle value
      */
-    private Number getConstantValue(InstructionHandle h, ConstantPoolGen cpgen) {
+    private Number (InstructionHandle h, ConstantPoolGen cpgen) {
         Number value;
 
         if (h.getInstruction() instanceof ConstantPushInstruction) {
@@ -541,20 +545,4 @@ public class ConstantFolder
 
         System.out.format("Total constants: %d\n", constantCount);
     }
-	
-	public void write(String optimisedFilePath)
-	{
-		this.optimize();
-
-		try {
-			FileOutputStream out = new FileOutputStream(new File(optimisedFilePath));
-			this.optimized.dump(out);
-		} catch (FileNotFoundException e) {
-			// Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
 }
