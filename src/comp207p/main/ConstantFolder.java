@@ -32,6 +32,7 @@ public class ConstantFolder
 	public void optimize()
 	{
 		ClassGen cgen = new ClassGen(original);
+        cgen.setMajor(50);
 		ConstantPoolGen cpgen = cgen.getConstantPool();
 
         ConstantPool cp = cpgen.getConstantPool();
