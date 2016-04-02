@@ -133,6 +133,14 @@
       <arg line="-in ${classes.dir} -out ${optimised.dir}"/>
     </java>
   </target>
+
+  <target name="single-optimise" depends="generate" description="Optimise single class only">
+    <mkdir dir="${optimised.dir}"/>
+    <java classname="comp207p.main.OptimiseSingleClass">
+      <classpath refid="test.original.classpath"/>
+      <arg line="${className}"/>
+    </java>
+  </target>
   
   
   <!-- clean up everything -->
