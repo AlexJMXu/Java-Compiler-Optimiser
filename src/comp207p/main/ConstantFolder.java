@@ -512,7 +512,7 @@ public class ConstantFolder
      * @param cpgen Constant pool of the class
      * @return InstructionHandle value
      */
-    private Number (InstructionHandle h, ConstantPoolGen cpgen) {
+    private Number getConstantValue(InstructionHandle h, ConstantPoolGen cpgen) {
         Number value;
 
         if (h.getInstruction() instanceof ConstantPushInstruction) {
