@@ -5,6 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
+import comp207p.main.utils.Utilities;
+import comp207p.main.utils.ValueLoader;
 import org.apache.bcel.classfile.*;
 import org.apache.bcel.generic.*;
 import org.apache.bcel.util.InstructionFinder;
@@ -57,7 +59,7 @@ public class ConstantFolder
         ConstantPool cp = cpgen.getConstantPool();
         Method[] methods = cgen.getMethods();
 
-        printConstants(cp);
+        Utilities.printConstants(cp);
 
         for(Method m : methods) {
             System.out.println(m); //Print method name
@@ -112,7 +114,7 @@ public class ConstantFolder
         Method newMethod = methodGen.getMethod();
 
         System.out.println("Fully optimised instruction set:");
-        printConstants(cpgen.getConstantPool());
+        Utilities.printConstants(cpgen.getConstantPool());
         System.out.println(newMethod.getCode());
 
         // replace the method in the original class
@@ -144,7 +146,7 @@ public class ConstantFolder
             changeCounter++; //Optimisation found
             for(InstructionHandle h : match) { 
                 if(h.getInstruction() instanceof LoadInstruction) {
-                    System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
+                    System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
                 } else {
                     System.out.println(h);
                 }
@@ -171,17 +173,17 @@ public class ConstantFolder
 
             //Get values
             if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) { //If both instructions are loading values
-                leftValue = getLoadInstructionValue(leftInstruction, cpgen);
-                rightValue = getLoadInstructionValue(rightInstruction, cpgen);
+                leftValue = ValueLoader.getLoadInstructionValue(leftInstruction, cpgen);
+                rightValue = ValueLoader.getLoadInstructionValue(rightInstruction, cpgen);
             } else if (leftInstruction.getInstruction() instanceof LoadInstruction) { //If left is loading value
-                leftValue = getLoadInstructionValue(leftInstruction, cpgen);
-                rightValue = getConstantValue(rightInstruction, cpgen);
+                leftValue = ValueLoader.getLoadInstructionValue(leftInstruction, cpgen);
+                rightValue = ValueLoader.getConstantValue(rightInstruction, cpgen);
             } else if (rightInstruction.getInstruction() instanceof LoadInstruction) { //If right is loading value
-                leftValue = getConstantValue(leftInstruction, cpgen);
-                rightValue = getLoadInstructionValue(rightInstruction, cpgen);
+                leftValue = ValueLoader.getConstantValue(leftInstruction, cpgen);
+                rightValue = ValueLoader.getLoadInstructionValue(rightInstruction, cpgen);
             } else { //No load instructions
-                leftValue = getConstantValue(leftInstruction, cpgen);
-                rightValue =  getConstantValue(rightInstruction, cpgen);
+                leftValue = ValueLoader.getConstantValue(leftInstruction, cpgen);
+                rightValue =  ValueLoader.getConstantValue(rightInstruction, cpgen);
             }
 
             ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
@@ -268,7 +270,7 @@ public class ConstantFolder
             changeCounter++; //Optimisation found
             for(InstructionHandle h : match) {
                 if(h.getInstruction() instanceof LoadInstruction) {
-                    System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
+                    System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
                 } else {
                     System.out.println(h);
                 }
@@ -288,17 +290,17 @@ public class ConstantFolder
             }
 
             if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) { //If both instructions are loading values
-                leftValue = getLoadInstructionValue(leftInstruction, cpgen);
-                rightValue = getLoadInstructionValue(rightInstruction, cpgen);
+                leftValue = ValueLoader.getLoadInstructionValue(leftInstruction, cpgen);
+                rightValue = ValueLoader.getLoadInstructionValue(rightInstruction, cpgen);
             } else if (leftInstruction.getInstruction() instanceof LoadInstruction) { //If left is loading value
-                leftValue = getLoadInstructionValue(leftInstruction, cpgen);
-                rightValue = getConstantValue(rightInstruction, cpgen);
+                leftValue = ValueLoader.getLoadInstructionValue(leftInstruction, cpgen);
+                rightValue = ValueLoader.getConstantValue(rightInstruction, cpgen);
             } else if (rightInstruction.getInstruction() instanceof LoadInstruction) { //If right is loading value
-                leftValue = getConstantValue(leftInstruction, cpgen);
-                rightValue = getLoadInstructionValue(rightInstruction, cpgen);
+                leftValue = ValueLoader.getConstantValue(leftInstruction, cpgen);
+                rightValue = ValueLoader.getLoadInstructionValue(rightInstruction, cpgen);
             } else { //No load instructions
-                leftValue = getConstantValue(leftInstruction, cpgen);
-                rightValue =  getConstantValue(rightInstruction, cpgen);
+                leftValue = ValueLoader.getConstantValue(leftInstruction, cpgen);
+                rightValue =  ValueLoader.getConstantValue(rightInstruction, cpgen);
             }
 
             IfInstruction comparison = (IfInstruction) comparisonInstruction.getInstruction();
@@ -458,41 +460,6 @@ public class ConstantFolder
     }
 
     /**
-     * Get the value of a load instruction, e.g. iload_2
-     * @param h The load instruction fetch the value from
-     * @param cpgen Constant pool of the class
-     * @return Load instruction value
-     */
-    private Number getLoadInstructionValue(InstructionHandle h, ConstantPoolGen cpgen) {
-        Instruction instruction = h.getInstruction();
-        if(!(instruction instanceof LoadInstruction)) {
-            throw new RuntimeException("InstructionHandle has to be of type LoadInstruction");
-        }
-
-        int localVariableIndex = ((LocalVariableInstruction) instruction).getIndex();
-
-        InstructionHandle handleIterator = h;
-        while(!(instruction instanceof StoreInstruction) || ((StoreInstruction) instruction).getIndex() != localVariableIndex) {
-            handleIterator = handleIterator.getPrev();
-            instruction = handleIterator.getInstruction();
-        }
-
-        //Go back previous one more additional time to fetch constant push instruction
-        handleIterator = handleIterator.getPrev();
-        instruction = handleIterator.getInstruction();
-
-        if(instruction instanceof ConstantPushInstruction) {
-            return ((ConstantPushInstruction) instruction).getValue();
-        } else if (instruction instanceof LDC) {
-            return (Number) ((LDC) instruction).getValue(cpgen);
-        } else if (instruction instanceof LDC2_W) {
-            return ((LDC2_W) instruction).getValue(cpgen);
-        } else {
-            throw new RuntimeException("Cannot fetch value for this type of object");
-        }
-    }
-
-    /**
      * Get the signature of a load instruction, e.g. iload_1 would return String "I"
      * @param h The load instruction fetch the value from
      * @param cpgen Constant pool of the class
@@ -549,43 +516,5 @@ public class ConstantFolder
         return false;
     }
 
-    /**
-     * get Number value from InstructionHandle
-     * @param h The load instruction fetch the value from
-     * @param cpgen Constant pool of the class
-     * @return InstructionHandle value
-     */
-    private Number getConstantValue(InstructionHandle h, ConstantPoolGen cpgen) {
-        Number value;
 
-        if (h.getInstruction() instanceof ConstantPushInstruction) {
-            value = ((ConstantPushInstruction) h.getInstruction()).getValue();
-        } else if (h.getInstruction() instanceof LDC) {
-            value = (Number) ((LDC) h.getInstruction()).getValue(cpgen);
-        } else if (h.getInstruction() instanceof LDC2_W) {
-            value = ((LDC2_W) h.getInstruction()).getValue(cpgen);
-        } else {
-            throw new RuntimeException();
-        }
-
-        return value;
-    }
-
-    /**
-     * Print out constants for debugging
-     * @param cp Constant Pool
-     */
-    private void printConstants(ConstantPool cp) {
-        Constant[] constants = cp.getConstantPool();
-        int constantCount = 0;
-        for(Constant c : constants) {
-            if((c == null) || (c instanceof ConstantString) || (c instanceof ConstantUtf8)) continue; //ignore these constant types
-
-            System.out.println(c);
-
-            constantCount++;
-        }
-
-        System.out.format("Total constants: %d\n", constantCount);
-    }
 }
