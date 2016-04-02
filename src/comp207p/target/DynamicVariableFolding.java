@@ -34,6 +34,11 @@ public class DynamicVariableFolding {
         for(int i = 0; i < 20; i = i + 4){
             System.out.println((b-a) * i);
         }
+        for(int i = 0; i < 20; i++){
+            for(int j = 0; j < 10; j++){
+                System.out.println(j*i);
+            }
+        }
         a = 4;
         b = a + 2;
         return a * b;
