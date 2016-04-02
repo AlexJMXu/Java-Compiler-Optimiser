@@ -45,6 +45,9 @@ public class ConstantFolder
         }
     }
 
+    /**
+     * Initial method
+     */
 	public void optimize()
 	{
 		ClassGen cgen = new ClassGen(original);
@@ -188,10 +191,10 @@ public class ConstantFolder
             int newPoolIndex;
             String type; 
             //Identify the type of the constant
-            if(checkSignature(leftInstruction, rightInstruction, cpgen, "D")) {
+            if(checkSignature(leftInstruction, rightInstruction, cpgen, "D")) { //double
                 newPoolIndex = cpgen.addDouble(result);
                 type = "D";
-            } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "F")) {
+            } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "F")) { //float
                 newPoolIndex = cpgen.addFloat(result.floatValue());
                 type = "F";
             } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "J")) { //J is the signature for long, wtf
@@ -231,6 +234,11 @@ public class ConstantFolder
         return changeCounter;
     }
 
+    /**
+     * Optimise comparison instructions
+     * @param instructionList Instruction list
+     * @return Number of changes made to instructions
+     */
     private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) { //Iterate through instructions to look for comparison optimisations
         int changeCounter = 0;
         String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction)" +
@@ -323,6 +331,14 @@ public class ConstantFolder
         return changeCounter;
     }
 
+    /**
+     * Integer comparison by checking the type of comparison (such as if integers equal, IF_ICMPEQ)
+     * After identifying the type, compares the values, and returns 1 or 0 accordingly
+     * @param comparison Comparison type for the integers
+     * @param leftValue Left value of the comparison
+     * @param rightValue Right value of the comparison
+     * @return Comparison result
+     */
     private int checkIntComparison(IfInstruction comparison, Number leftValue, Number rightValue) {
         if (comparison instanceof IF_ICMPEQ) { // if value 1 equals value 2
             if (leftValue.intValue() == rightValue.intValue()) return 1;
@@ -347,6 +363,14 @@ public class ConstantFolder
         }
     }
 
+    /**
+     * Comparison for non-integers by checking the type of comparison 
+     * After identifying the type, compares the values, and returns 1 or 0 accordingly (includes -1 for long compare)
+     * @param comparison Comparison type such as DCMPG 
+     * @param leftValue Left value of the comparison
+     * @param rightValue Right value of the comparison
+     * @return Comparison result
+     */
     private int checkFirstComparison(InstructionHandle comparison, Number leftValue, Number rightValue) {
         if (comparison.getInstruction() instanceof DCMPG) { //if double 1 greater than double 2
             if (leftValue.doubleValue() > rightValue.doubleValue()) return 1;
@@ -369,6 +393,13 @@ public class ConstantFolder
         }
     }
 
+    /**
+     * If comparison
+     * After identifying the type of if comparison, compares the values, and returns 1 or 0 accordingly
+     * @param comparison Comparison type for the integers
+     * @param value Value passed from first comparison
+     * @return Comparison result
+     */
     private int checkSecondComparison(IfInstruction comparison, int value) {
         if (comparison instanceof IFEQ) { //if equal
             if (value == 0) return 1;
@@ -398,7 +429,7 @@ public class ConstantFolder
      * @param operation Arithmetic operation e.g. IADD, DMUL, etc.
      * @param left Left value of binary operator
      * @param right Right side of binary operator
-     * @return
+     * @return Result of the calculation
      */
     private double foldOperation(ArithmeticInstruction operation, Number left, Number right) {
         if(operation instanceof IADD || operation instanceof  FADD || operation instanceof LADD || operation instanceof DADD) {
