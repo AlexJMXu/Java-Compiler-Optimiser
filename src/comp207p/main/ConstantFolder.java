@@ -137,7 +137,7 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable arithmetic set");
-            changeCounter++; // Optimisation found
+            changeCounter++; //Optimisation found
             for(InstructionHandle h : match) { 
                 if(h.getInstruction() instanceof LoadInstruction) {
                     System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
@@ -181,7 +181,7 @@ public class ConstantFolder
 
             ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
 
-            Double result = foldOperation(operation, leftValue, rightValue);
+            Double result = foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
             System.out.format("Folding to value %f\n", result);
 
             //Insert as a new constant into constant pool
@@ -231,7 +231,7 @@ public class ConstantFolder
         return changeCounter;
     }
 
-    private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) {
+    private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) { //Iterate through instructions to look for comparison optimisations
         int changeCounter = 0;
         String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction)" +
                         "(ConstantPushInstruction|CPInstruction|LoadInstruction)" +
@@ -239,13 +239,13 @@ public class ConstantFolder
 
         InstructionFinder finder = new InstructionFinder(instructionList);
 
-        for(Iterator it = finder.search(regExp); it.hasNext();) {
+        for(Iterator it = finder.search(regExp); it.hasNext();) { // I
             InstructionHandle[] match = (InstructionHandle[]) it.next();
 
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable comparison set");
-            changeCounter++; 
+            changeCounter++; //Optimisation found
             for(InstructionHandle h : match) {
                 if(h.getInstruction() instanceof LoadInstruction) {
                     System.out.format("%s | Val: %s\n", h, getLoadInstructionValue(h, cpgen));
@@ -260,23 +260,23 @@ public class ConstantFolder
             leftInstruction = match[0];
             rightInstruction = match[1];
 
-            if (match[2].getInstruction() instanceof IfInstruction) {
+            if (match[2].getInstruction() instanceof IfInstruction) { //If the following instruction after left and right is an IfInstruction (meaning integer comparison), such as IF_ICMPGE
                 comparisonInstruction = match[2];
             } else {
-                compare = match[2];
-                comparisonInstruction = match[3];
+                compare = match[2]; //Comparison for non-integers, such as LCMP
+                comparisonInstruction = match[3]; //IfInstruction
             }
 
-            if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) {
+            if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) { //If both instructions are loading values
                 leftValue = getLoadInstructionValue(leftInstruction, cpgen);
                 rightValue = getLoadInstructionValue(rightInstruction, cpgen);
-            } else if (leftInstruction.getInstruction() instanceof LoadInstruction) {
+            } else if (leftInstruction.getInstruction() instanceof LoadInstruction) { //If left is loading value
                 leftValue = getLoadInstructionValue(leftInstruction, cpgen);
                 rightValue = getConstantValue(rightInstruction, cpgen);
-            } else if (rightInstruction.getInstruction() instanceof LoadInstruction) {
+            } else if (rightInstruction.getInstruction() instanceof LoadInstruction) { //If right is loading value
                 leftValue = getConstantValue(leftInstruction, cpgen);
                 rightValue = getLoadInstructionValue(rightInstruction, cpgen);
-            } else {
+            } else { //No load instructions
                 leftValue = getConstantValue(leftInstruction, cpgen);
                 rightValue =  getConstantValue(rightInstruction, cpgen);
             }
@@ -285,15 +285,15 @@ public class ConstantFolder
 
             int result = 0;
 
-            if (comparisonInstruction == match[2]) {
-                result = checkIntComparison(comparison, leftValue, rightValue);
-            } else {
+            if (comparisonInstruction == match[2]) { //Integer comparison
+                result = checkIntComparison(comparison, leftValue, rightValue); 
+            } else { //Non-integer type comparison
                 result = checkFirstComparison(compare, leftValue, rightValue);
                 result = checkSecondComparison(comparison, result);
             }
 
             //Set left constant handle to point to new index
-            //1 -> 0 and 0 -> 1 because instructions do it that way
+            //1 -> 0 and 0 -> 1 due to instruction interpretation
             if (result == 1) {
                 ICONST newInstruction = new ICONST(0);
                 leftInstruction.setInstruction(newInstruction);
@@ -348,20 +348,20 @@ public class ConstantFolder
     }
 
     private int checkFirstComparison(InstructionHandle comparison, Number leftValue, Number rightValue) {
-        if (comparison.getInstruction() instanceof DCMPG) {
+        if (comparison.getInstruction() instanceof DCMPG) { //if double 1 greater than double 2
             if (leftValue.doubleValue() > rightValue.doubleValue()) return 1;
             else return 0;
-        } else if (comparison.getInstruction()  instanceof DCMPL) {
+        } else if (comparison.getInstruction()  instanceof DCMPL) { //if double 1 less than double 2
             if (leftValue.doubleValue() < rightValue.doubleValue()) return 1;
             else return 0;
-        } else if (comparison.getInstruction()  instanceof FCMPG) {
+        } else if (comparison.getInstruction()  instanceof FCMPG) { //if float 1 greater than float 2
             if (leftValue.floatValue() > rightValue.floatValue()) return 1;
             else return 0;
-        } else if (comparison.getInstruction()  instanceof FCMPL) {
+        } else if (comparison.getInstruction()  instanceof FCMPL) { //if float 1 less than float 2
             if (leftValue.floatValue() < rightValue.floatValue()) return 1;
             else return 0;
-        } else if (comparison.getInstruction()  instanceof LCMP) {
-            if (leftValue.longValue() == rightValue.longValue()) return 0;
+        } else if (comparison.getInstruction()  instanceof LCMP) { //long comparison, 0 if equal, 1 if long 1 greater than long 2, -1 if long 1 less than long 2
+            if (leftValue.longValue() == rightValue.longValue()) return 0; 
             else if (leftValue.longValue() > rightValue.longValue()) return 1;
             else return -1;
         } else {
@@ -370,22 +370,22 @@ public class ConstantFolder
     }
 
     private int checkSecondComparison(IfInstruction comparison, int value) {
-        if (comparison instanceof IFEQ) {
+        if (comparison instanceof IFEQ) { //if equal
             if (value == 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFGE) {
+        } else if (comparison instanceof IFGE) { //if greater than or equal
             if (value >= 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFGT) {
+        } else if (comparison instanceof IFGT) { //if greater than
             if (value > 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFLE) {
+        } else if (comparison instanceof IFLE) { //if less than or equal
             if (value <= 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFLT) {
+        } else if (comparison instanceof IFLT) { //if less than
             if (value < 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFNE) {
+        } else if (comparison instanceof IFNE) { //if not equal
             if (value != 0) return 1;
             else return 0;
         } else {
