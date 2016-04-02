@@ -129,7 +129,8 @@ public class ConstantFolder
 
         String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* " +
                 "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* " +
-                "ArithmeticInstruction INVOKEVIRTUAL* (IINC GotoInstruction)*";
+                "ArithmeticInstruction INVOKEVIRTUAL* ((ConstantPushInstruction|CPInstruction|LoadInstruction) " +
+                "(ConstantPushInstruction|CPInstruction|LoadInstruction) ArithmeticInstruction ISTORE GoToInstruction | IINC GotoInstruction)*";
 
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         InstructionFinder finder = new InstructionFinder(instructionList);
