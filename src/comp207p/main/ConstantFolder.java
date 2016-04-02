@@ -129,7 +129,7 @@ public class ConstantFolder
 
         String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* " +
                 "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* " +
-                "ArithmeticInstruction";
+                "ArithmeticInstruction INVOKEVIRTUAL* (IINC GotoInstruction)*";
 
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         InstructionFinder finder = new InstructionFinder(instructionList);
@@ -151,6 +151,7 @@ public class ConstantFolder
 
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, operationInstruction;
+            GotoInstruction gotoInstruction;
 
             //Get instructions
             leftInstruction = match[0]; //Left instruction is always first match
@@ -183,6 +184,18 @@ public class ConstantFolder
             }
 
             ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
+
+            if (match[match.length-1].getInstruction() instanceof GotoInstruction && match[match.length-2].getInstruction() instanceof IINC) {
+                gotoInstruction = (GotoInstruction) match[match.length-1].getInstruction();
+                if (((BranchInstruction)gotoInstruction).getTarget() != leftInstruction && ((BranchInstruction)gotoInstruction).getTarget() != rightInstruction) {
+                    System.out.println("For loop variable detected, no folding will occur.");
+                    System.out.println("==================================");
+                    changeCounter--;
+                    it = finder.search(regExp, match[match.length-1]);
+                    finder.reread();
+                    continue;
+                }
+            }
 
             Double result = foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
             System.out.format("Folding to value %f\n", result);
