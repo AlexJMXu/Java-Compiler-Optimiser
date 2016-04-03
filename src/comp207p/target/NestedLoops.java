@@ -6,7 +6,7 @@ public class NestedLoops {
 
         int b = 24;
         for(int i = 0; i < 22; i++) {
-            for(int j = 0; i < 32; j++) {
+            for(int j = 0; j < 32; j++) {
                 b += a * j * i;
             }
         }
