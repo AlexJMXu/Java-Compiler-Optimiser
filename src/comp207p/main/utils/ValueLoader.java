@@ -1,5 +1,6 @@
 package comp207p.main.utils;
 
+import comp207p.main.exceptions.UnableToFetchValueException;
 import org.apache.bcel.generic.*;
 
 public class ValueLoader {
@@ -10,7 +11,7 @@ public class ValueLoader {
      * @param cpgen Constant pool of the class
      * @return Instruction handle value
      */
-    public static Number getValue(InstructionHandle h, ConstantPoolGen cpgen) {
+    public static Number getValue(InstructionHandle h, ConstantPoolGen cpgen) throws UnableToFetchValueException {
         Instruction instruction = h.getInstruction();
         if(instruction instanceof LoadInstruction) {
             return ValueLoader.getLoadInstructionValue(h, cpgen);
@@ -47,7 +48,7 @@ public class ValueLoader {
      * @param cpgen Constant pool of the class
      * @return Load instruction value
      */
-    public static Number getLoadInstructionValue(InstructionHandle h, ConstantPoolGen cpgen) {
+    public static Number getLoadInstructionValue(InstructionHandle h, ConstantPoolGen cpgen) throws UnableToFetchValueException {
         Instruction instruction = h.getInstruction();
         if(!(instruction instanceof LoadInstruction)) {
             throw new RuntimeException("InstructionHandle has to be of type LoadInstruction");
@@ -72,7 +73,7 @@ public class ValueLoader {
         } else if (instruction instanceof LDC2_W) {
             return ((LDC2_W) instruction).getValue(cpgen);
         } else {
-            throw new RuntimeException("Cannot fetch value for this type of object");
+            throw new UnableToFetchValueException("Cannot fetch value for this type of object");
         }
     }
 }

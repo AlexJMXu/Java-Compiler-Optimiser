@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
+import comp207p.main.exceptions.UnableToFetchValueException;
 import comp207p.main.utils.ConstantPoolInserter;
 import comp207p.main.utils.Utilities;
 import comp207p.main.utils.ValueLoader;
@@ -147,7 +148,7 @@ public class ConstantFolder
                 if(h.getInstruction() instanceof LoadInstruction) {
                     try {
                         System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
-                    } catch (RuntimeException e) {
+                    } catch (UnableToFetchValueException e) {
                         System.out.format("%s\n", h);
                     }
                 } else {
@@ -190,7 +191,7 @@ public class ConstantFolder
             try {
                 leftValue = ValueLoader.getValue(leftInstruction, cpgen);
                 rightValue = ValueLoader.getValue(rightInstruction, cpgen);
-            } catch (RuntimeException e) {
+            } catch (UnableToFetchValueException e) {
                 printForLoopDetected();
                 continue;
             }
