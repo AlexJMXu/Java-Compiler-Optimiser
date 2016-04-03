@@ -171,20 +171,9 @@ public class ConstantFolder
                 operationInstruction = match[2]; //No conversion for either instruction
             }
 
-            //Get values
-            if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) { //If both instructions are loading values
-                leftValue = ValueLoader.getLoadInstructionValue(leftInstruction, cpgen);
-                rightValue = ValueLoader.getLoadInstructionValue(rightInstruction, cpgen);
-            } else if (leftInstruction.getInstruction() instanceof LoadInstruction) { //If left is loading value
-                leftValue = ValueLoader.getLoadInstructionValue(leftInstruction, cpgen);
-                rightValue = ValueLoader.getConstantValue(rightInstruction, cpgen);
-            } else if (rightInstruction.getInstruction() instanceof LoadInstruction) { //If right is loading value
-                leftValue = ValueLoader.getConstantValue(leftInstruction, cpgen);
-                rightValue = ValueLoader.getLoadInstructionValue(rightInstruction, cpgen);
-            } else { //No load instructions
-                leftValue = ValueLoader.getConstantValue(leftInstruction, cpgen);
-                rightValue =  ValueLoader.getConstantValue(rightInstruction, cpgen);
-            }
+            //Fetch values for push instructions
+            leftValue = ValueLoader.getValue(leftInstruction, cpgen);
+            rightValue = ValueLoader.getValue(rightInstruction, cpgen);
 
             ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
 
@@ -288,19 +277,9 @@ public class ConstantFolder
                 comparisonInstruction = match[3]; //IfInstruction
             }
 
-            if (leftInstruction.getInstruction() instanceof LoadInstruction && rightInstruction.getInstruction() instanceof LoadInstruction) { //If both instructions are loading values
-                leftValue = ValueLoader.getLoadInstructionValue(leftInstruction, cpgen);
-                rightValue = ValueLoader.getLoadInstructionValue(rightInstruction, cpgen);
-            } else if (leftInstruction.getInstruction() instanceof LoadInstruction) { //If left is loading value
-                leftValue = ValueLoader.getLoadInstructionValue(leftInstruction, cpgen);
-                rightValue = ValueLoader.getConstantValue(rightInstruction, cpgen);
-            } else if (rightInstruction.getInstruction() instanceof LoadInstruction) { //If right is loading value
-                leftValue = ValueLoader.getConstantValue(leftInstruction, cpgen);
-                rightValue = ValueLoader.getLoadInstructionValue(rightInstruction, cpgen);
-            } else { //No load instructions
-                leftValue = ValueLoader.getConstantValue(leftInstruction, cpgen);
-                rightValue =  ValueLoader.getConstantValue(rightInstruction, cpgen);
-            }
+            //Fetch values for push instructions
+            leftValue = ValueLoader.getValue(leftInstruction, cpgen);
+            rightValue = ValueLoader.getValue(rightInstruction, cpgen);
 
             IfInstruction comparison = (IfInstruction) comparisonInstruction.getInstruction();
 

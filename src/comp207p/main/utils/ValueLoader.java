@@ -3,8 +3,24 @@ package comp207p.main.utils;
 import org.apache.bcel.generic.*;
 
 public class ValueLoader {
+
     /**
-     * Get Number value from InstructionHandle
+     * Get value for any instruction handle that pushes a value onto the stack
+     * @param h The load instruction fetch the value from
+     * @param cpgen Constant pool of the class
+     * @return Instruction handle value
+     */
+    public static Number getValue(InstructionHandle h, ConstantPoolGen cpgen) {
+        Instruction instruction = h.getInstruction();
+        if(instruction instanceof LoadInstruction) {
+            return ValueLoader.getLoadInstructionValue(h, cpgen);
+        } else {
+            return ValueLoader.getConstantValue(h, cpgen);
+        }
+    }
+
+    /**
+     * Get Number value from InstructionHandle loading constant from constant pool
      * @param h The load instruction fetch the value from
      * @param cpgen Constant pool of the class
      * @return InstructionHandle value
