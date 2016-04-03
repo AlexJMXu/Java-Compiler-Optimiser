@@ -133,7 +133,7 @@ public class ConstantFolder
         String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)? " +
                 "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)? " +
                 "ArithmeticInstruction " +
-                "INVOKEVIRTUAL? " +
+                "(INVOKEVIRTUAL|ISTORE)?" +
                 "(" +
                     "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) " +
                     "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) " +
