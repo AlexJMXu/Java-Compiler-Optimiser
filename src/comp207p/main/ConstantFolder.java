@@ -143,12 +143,11 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable arithmetic set");
-            changeCounter++; //Optimisation found
             for(InstructionHandle h : match) { 
                 if(h.getInstruction() instanceof LoadInstruction) {
                     try {
                         System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
-                    } catch (Exception e) {
+                    } catch (RuntimeException e) {
                         System.out.format("%s\n", h);
                     }
                 } else {
@@ -176,17 +175,13 @@ public class ConstantFolder
 
             if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops, stops at ISTORE for second condition as no need to check further
                 if (checkIfForLoop(leftInstruction)) {
-                    System.out.println("For loop variable detected, no folding will occur.");
-                    System.out.println("==================================");
-                    changeCounter--;
+                    printForLoopDetected();
                     continue;
                 }
             }
             if (rightInstruction.getInstruction() instanceof LoadInstruction) {
                 if (checkIfForLoop(rightInstruction)) {
-                    System.out.println("For loop variable detected, no folding will occur.");
-                    System.out.println("==================================");
-                    changeCounter--;
+                    printForLoopDetected();
                     continue;
                 }
             }
@@ -195,10 +190,8 @@ public class ConstantFolder
             try {
                 leftValue = ValueLoader.getValue(leftInstruction, cpgen);
                 rightValue = ValueLoader.getValue(rightInstruction, cpgen);
-            } catch (Exception e) {
-                System.out.println("For loop variable detected, no folding will occur.");
-                System.out.println("==================================");
-                changeCounter--;
+            } catch (RuntimeException e) {
+                printForLoopDetected();
                 continue;
             }
 
@@ -231,6 +224,7 @@ public class ConstantFolder
             }
 
             System.out.println("==================================");
+            changeCounter++; //Optimisation found
 
             break;
         }
@@ -248,7 +242,7 @@ public class ConstantFolder
                         return true;
                     }
                 } 
-            } catch (Exception e) {
+            } catch (NullPointerException e) {
                 break;
             } 
         }
@@ -341,6 +335,11 @@ public class ConstantFolder
         }
 
         return changeCounter;
+    }
+
+    private void printForLoopDetected() {
+        System.out.println("For loop variable detected, no folding will occur.");
+        System.out.println("==================================");
     }
 
     /**
