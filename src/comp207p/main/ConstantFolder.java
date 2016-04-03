@@ -204,7 +204,6 @@ public class ConstantFolder
 
             //Get the signature of the folded value
             char type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
-            System.out.format("Type: %c\n", type);
 
             //Insert new constant into pool
             int newPoolIndex = ConstantPoolInserter.insert(foldedValue, type, cpgen);
