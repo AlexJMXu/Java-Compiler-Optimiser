@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
+import comp207p.main.utils.ConstantPoolInserter;
 import comp207p.main.utils.Utilities;
 import comp207p.main.utils.ValueLoader;
 import org.apache.bcel.classfile.*;
@@ -189,34 +190,17 @@ public class ConstantFolder
                     continue;
             }
 
-            Double result = foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
-            System.out.format("Folding to value %f\n", result);
+            Double foldedValue = ConstantPoolInserter.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
+            System.out.format("Folding to value %f\n", foldedValue);
 
-            //Insert as a new constant into constant pool
-            int newPoolIndex;
-            String type; 
-            //Identify the type of the constant
-            if(checkSignature(leftInstruction, rightInstruction, cpgen, "D")) { //double
-                newPoolIndex = cpgen.addDouble(result);
-                type = "D";
-            } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "F")) { //float
-                newPoolIndex = cpgen.addFloat(result.floatValue());
-                type = "F";
-            } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "J")) { //J is the signature for long, wtf
-                newPoolIndex = cpgen.addLong(result.longValue());
-                type = "J";
-            } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "I")) { //int
-                newPoolIndex = cpgen.addInteger(result.intValue());
-                type = "I";
-            } else if(checkSignature(leftInstruction, rightInstruction, cpgen, "B")) {
-                newPoolIndex = cpgen.addInteger(result.intValue());
-                type = "I"; //Promote byte to integer
-            } else {
-                throw new RuntimeException("Type not defined");
-            }
+            //Get the signature of the folded value
+            char type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
+
+            //Insert new constant into pool
+            int newPoolIndex = ConstantPoolInserter.insert(foldedValue, type, cpgen);
 
             //Set left constant handle to point to new index
-            if (type.equals("F") || type.equals("I")) { //Float or integer
+            if (type == 'F' || type == 'I') { //Float or integer
                 LDC newInstruction = new LDC(newPoolIndex);
                 leftInstruction.setInstruction(newInstruction);
             } else { //Types larger than integer use LDC2_W
@@ -418,84 +402,5 @@ public class ConstantFolder
             throw new RuntimeException("Comparison not defined");
         }
     }
-
-    /**
-     * Fold an arithmetic operation and get the result
-     * @param operation Arithmetic operation e.g. IADD, DMUL, etc.
-     * @param left Left value of binary operator
-     * @param right Right side of binary operator
-     * @return Result of the calculation
-     */
-    private double foldOperation(ArithmeticInstruction operation, Number left, Number right) {
-        if(operation instanceof IADD || operation instanceof  FADD || operation instanceof LADD || operation instanceof DADD) {
-            return left.doubleValue() + right.doubleValue();
-        } else if(operation instanceof ISUB || operation instanceof  FSUB || operation instanceof LSUB || operation instanceof DSUB){
-            return left.doubleValue() - right.doubleValue();
-        } else if(operation instanceof IMUL || operation instanceof  FMUL || operation instanceof LMUL || operation instanceof DMUL){
-            return left.doubleValue() * right.doubleValue();
-        } else if(operation instanceof IDIV || operation instanceof  FDIV || operation instanceof LDIV || operation instanceof DDIV){
-            return left.doubleValue() / right.doubleValue();    
-        } else {
-            throw new RuntimeException("Not supported operation");
-        }
-    }
-
-    /**
-     * Get the signature of a load instruction, e.g. iload_1 would return String "I"
-     * @param h The load instruction fetch the value from
-     * @param cpgen Constant pool of the class
-     * @return Load instruction value signature
-     */
-    private String getLoadInstructionSignature(InstructionHandle h, ConstantPoolGen cpgen) {
-        Instruction instruction = h.getInstruction();
-        if(!(instruction instanceof LoadInstruction)) {
-            throw new RuntimeException("InstructionHandle has to be of type LoadInstruction");
-        }
-
-        int localVariableIndex = ((LocalVariableInstruction) instruction).getIndex();
-
-        InstructionHandle handleIterator = h;
-        while(!(instruction instanceof StoreInstruction) || ((StoreInstruction) instruction).getIndex() != localVariableIndex) {
-            handleIterator = handleIterator.getPrev();
-            instruction = handleIterator.getInstruction();
-        }
-
-        //Go back previous one more additional time to fetch constant push instruction
-        handleIterator = handleIterator.getPrev();
-        instruction = handleIterator.getInstruction();
-
-        return ((TypedInstruction)instruction).getType(cpgen).getSignature();
-    }
-
-    /**
-     * Compare signatures of types of values from left and right instructions to specified signature, e.g. "D"
-     * @param left Left InstructionHandle e.g iload_1, LDC
-     * @param right Refer to left
-     * @param cpgen Constant pool of the class
-     * @param signature The specified String (Signature of Type) to compare
-     * @return true or false
-     */
-    private boolean checkSignature(InstructionHandle left, InstructionHandle right, ConstantPoolGen cpgen, String signature) {
-        if (left.getInstruction() instanceof LoadInstruction && right.getInstruction() instanceof LoadInstruction) {
-            if (getLoadInstructionSignature(left, cpgen).equals(signature) || getLoadInstructionSignature(right, cpgen).equals(signature)) {
-                return true;
-            }
-        } else if (left.getInstruction() instanceof LoadInstruction) {
-            if (getLoadInstructionSignature(left, cpgen).equals(signature) || ((TypedInstruction)right.getInstruction()).getType(cpgen).getSignature().equals(signature)) {
-                return true;
-            }
-        } else if (right.getInstruction() instanceof LoadInstruction) {
-            if (((TypedInstruction)left.getInstruction()).getType(cpgen).getSignature().equals(signature) || getLoadInstructionSignature(right, cpgen).equals(signature) ) {
-                return true;
-            }
-        } else {
-            if(((TypedInstruction)left.getInstruction()).getType(cpgen).getSignature().equals(signature) || ((TypedInstruction)right.getInstruction()).getType(cpgen).getSignature().equals(signature)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
 
 }
