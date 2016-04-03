@@ -130,18 +130,10 @@ public class ConstantFolder
     private int optimiseArithmeticOperation(InstructionList instructionList, ConstantPoolGen cpgen) {
         int changeCounter = 0;
 
-        String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)? " +
-                "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)? " +
-                "ArithmeticInstruction " +
-                "(INVOKEVIRTUAL|ISTORE)?" +
-                "(" +
-                    "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) " +
-                    "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) " +
-                    "ArithmeticInstruction " +
-                    "ISTORE " +
-                    "GoToInstruction " +
-                    "| IINC GotoInstruction" +
-                ")*";
+        String constsRE = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) ";
+        String arithmeticRE = constsRE + "(ConversionInstruction)?" + constsRE + "(ConversionInstruction)? ArithmeticInstruction";
+        String forRE = "(INVOKEVIRTUAL|ISTORE)? (" + constsRE + constsRE + "ArithmeticInstruction ISTORE GoToInstruction | IINC GotoInstruction)*";
+        String regExp = arithmeticRE + forRE;
 
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         InstructionFinder finder = new InstructionFinder(instructionList);
