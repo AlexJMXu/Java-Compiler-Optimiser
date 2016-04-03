@@ -174,7 +174,7 @@ public class ConstantFolder
                 operationInstruction = match[2]; //No conversion for either instruction
             }
 
-            if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops, stops at ISTORE for second condition as no need to check further
+            if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops
                 if (checkIfForLoop(leftInstruction)) {
                     printForLoopDetected();
                     continue;
@@ -273,7 +273,11 @@ public class ConstantFolder
             changeCounter++; //Optimisation found
             for(InstructionHandle h : match) {
                 if(h.getInstruction() instanceof LoadInstruction) {
-                    System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
+                    try {
+                        System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
+                    } catch (UnableToFetchValueException e) {
+                        System.out.format("%s\n", h);
+                    }
                 } else {
                     System.out.println(h);
                 }
@@ -285,6 +289,19 @@ public class ConstantFolder
             leftInstruction = match[0];
             rightInstruction = match[1];
 
+            if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops
+                if (checkIfForLoop(leftInstruction)) {
+                    printForLoopDetected();
+                    continue;
+                }
+            }
+            if (rightInstruction.getInstruction() instanceof LoadInstruction) {
+                if (checkIfForLoop(rightInstruction)) {
+                    printForLoopDetected();
+                    continue;
+                }
+            }
+
             if (match[2].getInstruction() instanceof IfInstruction) { //If the following instruction after left and right is an IfInstruction (meaning integer comparison), such as IF_ICMPGE
                 comparisonInstruction = match[2];
             } else {
@@ -293,8 +310,13 @@ public class ConstantFolder
             }
 
             //Fetch values for push instructions
-            leftValue = ValueLoader.getValue(leftInstruction, cpgen);
-            rightValue = ValueLoader.getValue(rightInstruction, cpgen);
+            try {
+                leftValue = ValueLoader.getValue(leftInstruction, cpgen);
+                rightValue = ValueLoader.getValue(rightInstruction, cpgen);
+            } catch (RuntimeException e) {
+                printForLoopDetected();
+                continue;
+            }
 
             IfInstruction comparison = (IfInstruction) comparisonInstruction.getInstruction();
 
