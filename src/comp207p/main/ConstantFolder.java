@@ -189,11 +189,11 @@ public class ConstantFolder
             ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
 
             Double foldedValue = ConstantPoolInserter.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
-            System.out.format("Folding to value %f\n", foldedValue);
 
             //Get the signature of the folded value
             char type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
-            System.out.format("Type: %c\n", type);
+
+            System.out.format("Folding to value %f | Type: %c\n", foldedValue, type);
 
             //Insert new constant into pool
             int newPoolIndex = ConstantPoolInserter.insert(foldedValue, type, cpgen);
