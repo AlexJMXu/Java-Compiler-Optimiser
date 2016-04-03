@@ -177,13 +177,16 @@ public class ConstantFolder
 
             ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
 
-            if (match[match.length-1].getInstruction() instanceof GotoInstruction && (match[match.length-2].getInstruction() instanceof IINC || match[match.length-2].getInstruction() instanceof ISTORE)) { //Recognise for loops, stops at ISTORE for second condition as no need to check further
+            if (match[match.length-1].getInstruction() instanceof GotoInstruction
+                    &&  (match[match.length-2].getInstruction() instanceof IINC
+                            || match[match.length-2].getInstruction() instanceof ISTORE
+                        )
+            ) { //Recognise for loops, stops at ISTORE for second condition as no need to check further
                 gotoInstruction = (GotoInstruction) match[match.length-1].getInstruction();
                     System.out.println("For loop variable detected, no folding will occur.");
                     System.out.println("==================================");
                     changeCounter--;
                     continue;
-                }
             }
 
             Double result = foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
