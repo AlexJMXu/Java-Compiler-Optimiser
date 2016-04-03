@@ -9,8 +9,10 @@ import java.io.PrintStream;
 
 import static org.junit.Assert.assertEquals;
 
-public class NestedLoopsTest {
-    NestedLoops nestedLoops = new NestedLoops();
+public class WhileLoopTest {
+    private static final double DELTA = 1e-15;
+
+    WhileLoop whileLoop = new WhileLoop();
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
@@ -27,7 +29,7 @@ public class NestedLoopsTest {
     }
 
     @Test
-    public void testNestedLoops(){
-        assertEquals(2406164, nestedLoops.foo());
+    public void testFoo(){
+        assertEquals(35.3856, whileLoop.foo(), DELTA);
     }
 }

@@ -9,8 +9,8 @@ import java.io.PrintStream;
 
 import static org.junit.Assert.assertEquals;
 
-public class NestedLoopsTest {
-    NestedLoops nestedLoops = new NestedLoops();
+public class SimpleIfTest {
+    SimpleIf simpleIf = new SimpleIf();
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
@@ -27,7 +27,7 @@ public class NestedLoopsTest {
     }
 
     @Test
-    public void testNestedLoops(){
-        assertEquals(2406164, nestedLoops.foo());
+    public void testFoo(){
+        assertEquals(true, simpleIf.foo());
     }
 }
