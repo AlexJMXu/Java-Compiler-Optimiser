@@ -144,17 +144,7 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable arithmetic set");
-            for(InstructionHandle h : match) { 
-                if(h.getInstruction() instanceof LoadInstruction) {
-                    try {
-                        System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
-                    } catch (UnableToFetchValueException e) {
-                        System.out.format("%s\n", h);
-                    }
-                } else {
-                    System.out.println(h);
-                }
-            }
+            Utilities.printInstructionHandles(match, cpgen);
 
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, operationInstruction;
@@ -271,17 +261,7 @@ public class ConstantFolder
             System.out.println("==================================");
             System.out.println("Found optimisable comparison set");
             changeCounter++; //Optimisation found
-            for(InstructionHandle h : match) {
-                if(h.getInstruction() instanceof LoadInstruction) {
-                    try {
-                        System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
-                    } catch (UnableToFetchValueException e) {
-                        System.out.format("%s\n", h);
-                    }
-                } else {
-                    System.out.println(h);
-                }
-            }
+            Utilities.printInstructionHandles(match, cpgen);
 
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, compare = null, comparisonInstruction;
