@@ -184,10 +184,12 @@ public class ConstantFolder
                         )
             ) { //Recognise for loops, stops at ISTORE for second condition as no need to check further
                 gotoInstruction = (GotoInstruction) match[match.length-1].getInstruction();
+            if (gotoInstruction.getTarget().getInstruction().equals(leftInstruction.getInstruction()) || gotoInstruction.getTarget().getInstruction().equals(rightInstruction.getInstruction())) {
                     System.out.println("For loop variable detected, no folding will occur.");
                     System.out.println("==================================");
                     changeCounter--;
                     continue;
+                }
             }
 
             Double foldedValue = ConstantPoolInserter.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
