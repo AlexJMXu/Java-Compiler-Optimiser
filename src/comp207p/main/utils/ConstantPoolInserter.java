@@ -39,7 +39,7 @@ public class ConstantPoolInserter {
         } else if(Signature.checkSignature(left, right, cpgen, "I")) { //int
             return 'I';
         } else if(Signature.checkSignature(left, right, cpgen, "B")) {
-            return 'B';
+            return 'I'; //Promote byte to integer
         } else {
             throw new RuntimeException("Type not defined");
         }
