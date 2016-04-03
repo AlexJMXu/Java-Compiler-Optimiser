@@ -132,16 +132,7 @@ public class ConstantFolder
 
         String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)? " +
                 "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)? " +
-                "ArithmeticInstruction " +
-                "(INVOKEVIRTUAL|ISTORE)?" +
-                "(" +
-                    "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) " +
-                    "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) " +
-                    "ArithmeticInstruction " +
-                    "ISTORE " +
-                    "GoToInstruction " +
-                    "| IINC GotoInstruction" +
-                ")*";
+                "ArithmeticInstruction";
 
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         InstructionFinder finder = new InstructionFinder(instructionList);
@@ -155,7 +146,11 @@ public class ConstantFolder
             changeCounter++; //Optimisation found
             for(InstructionHandle h : match) { 
                 if(h.getInstruction() instanceof LoadInstruction) {
-                    System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
+                    try {
+                        System.out.format("%s | Val: %s\n", h, ValueLoader.getLoadInstructionValue(h, cpgen));
+                    } catch (Exception e) {
+                        System.out.format("%s\n", h);
+                    }
                 } else {
                     System.out.println(h);
                 }
@@ -179,19 +174,16 @@ public class ConstantFolder
                 operationInstruction = match[2]; //No conversion for either instruction
             }
 
-            //Fetch values for push instructions
-            leftValue = ValueLoader.getValue(leftInstruction, cpgen);
-            rightValue = ValueLoader.getValue(rightInstruction, cpgen);
-
-            ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
-
-            if (match[match.length-1].getInstruction() instanceof GotoInstruction
-                    &&  (match[match.length-2].getInstruction() instanceof IINC
-                            || match[match.length-2].getInstruction() instanceof ISTORE
-                        )
-            ) { //Recognise for loops, stops at ISTORE for second condition as no need to check further
-                GotoInstruction gotoInstruction = (GotoInstruction) match[match.length-1].getInstruction();
-                if (gotoInstruction.getTarget().getInstruction().equals(leftInstruction.getInstruction()) || gotoInstruction.getTarget().getInstruction().equals(rightInstruction.getInstruction())) {
+            if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops, stops at ISTORE for second condition as no need to check further
+                if (checkIfForLoop(leftInstruction)) {
+                    System.out.println("For loop variable detected, no folding will occur.");
+                    System.out.println("==================================");
+                    changeCounter--;
+                    continue;
+                }
+            }
+            if (rightInstruction.getInstruction() instanceof LoadInstruction) {
+                if (checkIfForLoop(rightInstruction)) {
                     System.out.println("For loop variable detected, no folding will occur.");
                     System.out.println("==================================");
                     changeCounter--;
@@ -199,11 +191,25 @@ public class ConstantFolder
                 }
             }
 
+            //Fetch values for push instructions
+            try {
+                leftValue = ValueLoader.getValue(leftInstruction, cpgen);
+                rightValue = ValueLoader.getValue(rightInstruction, cpgen);
+            } catch (Exception e) {
+                System.out.println("For loop variable detected, no folding will occur.");
+                System.out.println("==================================");
+                changeCounter--;
+                continue;
+            }
+
+            ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
+
             Double foldedValue = ConstantPoolInserter.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
             System.out.format("Folding to value %f\n", foldedValue);
 
             //Get the signature of the folded value
             char type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
+            System.out.format("Type: %c\n", type);
 
             //Insert new constant into pool
             int newPoolIndex = ConstantPoolInserter.insert(foldedValue, type, cpgen);
@@ -230,6 +236,24 @@ public class ConstantFolder
         }
 
         return changeCounter;
+    }
+
+    public boolean checkIfForLoop(InstructionHandle h) {
+        InstructionHandle handleInterator = h;
+        while(handleInterator != null) {
+            try {
+                handleInterator = handleInterator.getNext();
+                if (handleInterator.getInstruction() instanceof GotoInstruction) {
+                    if (((BranchInstruction) handleInterator.getInstruction()).getTarget().getInstruction().equals(h.getInstruction())) {
+                        return true;
+                    }
+                } 
+            } catch (Exception e) {
+                break;
+            } 
+        }
+
+        return false;
     }
 
     /**
