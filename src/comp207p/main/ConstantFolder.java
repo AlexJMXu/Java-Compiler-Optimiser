@@ -130,10 +130,18 @@ public class ConstantFolder
     private int optimiseArithmeticOperation(InstructionList instructionList, ConstantPoolGen cpgen) {
         int changeCounter = 0;
 
-        String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* " +
-                "(ConstantPushInstruction|CPInstruction|LoadInstruction) (ConversionInstruction)* " +
-                "ArithmeticInstruction INVOKEVIRTUAL* ((ConstantPushInstruction|CPInstruction|LoadInstruction) " +
-                "(ConstantPushInstruction|CPInstruction|LoadInstruction) ArithmeticInstruction ISTORE GoToInstruction | IINC GotoInstruction)*";
+        String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)* " +
+                "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)* " +
+                "ArithmeticInstruction " +
+                //"INVOKEVIRTUAL* " +
+                "(" +
+                    "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) " +
+                    "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) " +
+                    "ArithmeticInstruction " +
+                    "ISTORE " +
+                    "GoToInstruction " +
+                    "| IINC GotoInstruction" +
+                ")*";
 
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         InstructionFinder finder = new InstructionFinder(instructionList);
@@ -155,7 +163,6 @@ public class ConstantFolder
 
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, operationInstruction;
-            GotoInstruction gotoInstruction;
 
             //Get instructions
             leftInstruction = match[0]; //Left instruction is always first match
@@ -183,11 +190,10 @@ public class ConstantFolder
                             || match[match.length-2].getInstruction() instanceof ISTORE
                         )
             ) { //Recognise for loops, stops at ISTORE for second condition as no need to check further
-                gotoInstruction = (GotoInstruction) match[match.length-1].getInstruction();
-                    System.out.println("For loop variable detected, no folding will occur.");
-                    System.out.println("==================================");
-                    changeCounter--;
-                    continue;
+                System.out.println("For loop variable detected, no folding will occur.");
+                System.out.println("==================================");
+                changeCounter--;
+                continue;
             }
 
             Double foldedValue = ConstantPoolInserter.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
@@ -230,8 +236,8 @@ public class ConstantFolder
      */
     private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) { //Iterate through instructions to look for comparison optimisations
         int changeCounter = 0;
-        String regExp = "(ConstantPushInstruction|CPInstruction|LoadInstruction)" +
-                        "(ConstantPushInstruction|CPInstruction|LoadInstruction)" +
+        String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction)" +
+                        "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction)" +
                         "(LCMP|DCMPG|DCMPL|FCMPG|FCMPL)* IfInstruction ICONST GOTO ICONST";
 
         InstructionFinder finder = new InstructionFinder(instructionList);
