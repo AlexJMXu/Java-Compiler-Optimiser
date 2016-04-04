@@ -45,24 +45,4 @@ public class ConstantPoolInserter {
         }
     }
 
-    /**
-     * Fold an arithmetic operation and get the result
-     * @param operation Arithmetic operation e.g. IADD, DMUL, etc.
-     * @param left Left value of binary operator
-     * @param right Right side of binary operator
-     * @return Result of the calculation
-     */
-    public static double foldOperation(ArithmeticInstruction operation, Number left, Number right) {
-        if(operation instanceof IADD || operation instanceof FADD || operation instanceof LADD || operation instanceof DADD) {
-            return left.doubleValue() + right.doubleValue();
-        } else if(operation instanceof ISUB || operation instanceof  FSUB || operation instanceof LSUB || operation instanceof DSUB){
-            return left.doubleValue() - right.doubleValue();
-        } else if(operation instanceof IMUL || operation instanceof  FMUL || operation instanceof LMUL || operation instanceof DMUL){
-            return left.doubleValue() * right.doubleValue();
-        } else if(operation instanceof IDIV || operation instanceof  FDIV || operation instanceof LDIV || operation instanceof DDIV){
-            return left.doubleValue() / right.doubleValue();
-        } else {
-            throw new RuntimeException("Not supported operation");
-        }
-    }
 }

@@ -57,7 +57,24 @@ public class ValueLoader {
         int localVariableIndex = ((LocalVariableInstruction) instruction).getIndex();
 
         InstructionHandle handleIterator = h;
+        int incrementAccumulator = 0;
         while(!(instruction instanceof StoreInstruction) || ((StoreInstruction) instruction).getIndex() != localVariableIndex) {
+
+            //If there is an IINC while scanning, we need to accumulate that on top of the ISTORE value
+            if(instruction instanceof IINC) {
+                IINC increment = (IINC) instruction;
+                System.out.println("Found increment instruction");
+
+                //If it's in a for loop, we cannot get the value
+                if(ForLoopChecker.checkIfForLoop(h)) {
+                    throw new UnableToFetchValueException("IINC in for loop");
+                }
+
+                System.out.format("%s | Incrementing by %d | Index: %d\n\n", increment, increment.getIncrement(), increment.getIndex());
+                incrementAccumulator += increment.getIncrement();
+            }
+
+
             handleIterator = handleIterator.getPrev();
             instruction = handleIterator.getInstruction();
         }
@@ -66,14 +83,17 @@ public class ValueLoader {
         handleIterator = handleIterator.getPrev();
         instruction = handleIterator.getInstruction();
 
+        Number storeValue;
         if(instruction instanceof ConstantPushInstruction) {
-            return ((ConstantPushInstruction) instruction).getValue();
+            storeValue = ((ConstantPushInstruction) instruction).getValue();
         } else if (instruction instanceof LDC) {
-            return (Number) ((LDC) instruction).getValue(cpgen);
+            storeValue = (Number) ((LDC) instruction).getValue(cpgen);
         } else if (instruction instanceof LDC2_W) {
-            return ((LDC2_W) instruction).getValue(cpgen);
+            storeValue = ((LDC2_W) instruction).getValue(cpgen);
         } else {
             throw new UnableToFetchValueException("Cannot fetch value for this type of object");
         }
+
+        return Utilities.foldOperation(new DADD(), storeValue, incrementAccumulator);
     }
 }

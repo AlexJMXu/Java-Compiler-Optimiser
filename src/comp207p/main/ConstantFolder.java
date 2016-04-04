@@ -13,6 +13,8 @@ import org.apache.bcel.classfile.*;
 import org.apache.bcel.generic.*;
 import org.apache.bcel.util.InstructionFinder;
 
+import static comp207p.main.utils.ForLoopChecker.checkIfForLoop;
+
 
 public class ConstantFolder
 {
@@ -188,7 +190,7 @@ public class ConstantFolder
 
             ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
 
-            Double foldedValue = ConstantPoolInserter.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
+            Double foldedValue = Utilities.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
 
             //Get the signature of the folded value
             char type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
@@ -221,26 +223,6 @@ public class ConstantFolder
         }
 
         return changeCounter;
-    }
-
-    public boolean checkIfForLoop(InstructionHandle h) {
-        InstructionHandle handleInterator = h;
-        while(handleInterator != null) {
-            try {
-                handleInterator = handleInterator.getNext();
-                if (handleInterator.getInstruction() instanceof GotoInstruction
-                    && (handleInterator.getPrev().getInstruction() instanceof IINC
-                    || handleInterator.getPrev().getInstruction() instanceof StoreInstruction)) {
-                    if (((BranchInstruction) handleInterator.getInstruction()).getTarget().getInstruction().equals(h.getInstruction())) {
-                        return true;
-                    }
-                } 
-            } catch (NullPointerException e) {
-                break;
-            } 
-        }
-
-        return false;
     }
 
     /**
