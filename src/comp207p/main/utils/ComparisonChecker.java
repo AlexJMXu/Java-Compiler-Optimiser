@@ -37,7 +37,7 @@ public class ComparisonChecker {
 
     /**
      * Comparison for non-integers by checking the type of comparison
-     * After identifying the type, compares the values, and returns 1 or 0 accordingly (includes -1 for long compare)
+     * After identifying the type, compares the values, and returns 1 or -1 accordingly (includes 0 for long compare)
      * @param comparison Comparison type such as DCMPG
      * @param leftValue Left value of the comparison
      * @param rightValue Right value of the comparison
