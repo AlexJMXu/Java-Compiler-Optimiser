@@ -166,13 +166,13 @@ public class ConstantFolder
 
             if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops
                 if (checkIfForLoop(leftInstruction)) {
-                    printForLoopDetected();
+                    printDynamicVariableDetected();
                     continue;
                 }
             }
             if (rightInstruction.getInstruction() instanceof LoadInstruction) {
                 if (checkIfForLoop(rightInstruction)) {
-                    printForLoopDetected();
+                    printDynamicVariableDetected();
                     continue;
                 }
             }
@@ -182,7 +182,7 @@ public class ConstantFolder
                 leftValue = ValueLoader.getValue(leftInstruction, cpgen);
                 rightValue = ValueLoader.getValue(rightInstruction, cpgen);
             } catch (UnableToFetchValueException e) {
-                printForLoopDetected();
+                printDynamicVariableDetected();
                 continue;
             }
 
@@ -228,7 +228,9 @@ public class ConstantFolder
         while(handleInterator != null) {
             try {
                 handleInterator = handleInterator.getNext();
-                if (handleInterator.getInstruction() instanceof GotoInstruction) {
+                if (handleInterator.getInstruction() instanceof GotoInstruction
+                    && (handleInterator.getPrev().getInstruction() instanceof IINC
+                    || handleInterator.getPrev().getInstruction() instanceof StoreInstruction)) {
                     if (((BranchInstruction) handleInterator.getInstruction()).getTarget().getInstruction().equals(h.getInstruction())) {
                         return true;
                     }
@@ -248,9 +250,9 @@ public class ConstantFolder
      */
     private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) { //Iterate through instructions to look for comparison optimisations
         int changeCounter = 0;
-        String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction)" +
-                        "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction)" +
-                        "(LCMP|DCMPG|DCMPL|FCMPG|FCMPL)* IfInstruction ICONST GOTO ICONST";
+        String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)?" +
+                        "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)?" +
+                        "(LCMP|DCMPG|DCMPL|FCMPG|FCMPL)* IfInstruction (ICONST GOTO ICONST)?";
 
         InstructionFinder finder = new InstructionFinder(instructionList);
 
@@ -260,41 +262,54 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable comparison set");
-            changeCounter++; //Optimisation found
             Utilities.printInstructionHandles(match, cpgen);
 
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, compare = null, comparisonInstruction;
 
-            leftInstruction = match[0];
-            rightInstruction = match[1];
+            //Get instructions
+            leftInstruction = match[0]; //Left instruction is always first match
+            if (match[1].getInstruction() instanceof ConversionInstruction) { 
+                rightInstruction = match[2]; //If conversion exists for left, then right instruction occurs after it
+            } else {
+                rightInstruction = match[1]; //No conversion instruction for left
+            }
+
+            int matchCounter = 0;
+            if (rightInstruction == match[2] && match[3].getInstruction() instanceof ConversionInstruction) { //If left has conversion and conversion exists for right
+                matchCounter = 2; 
+            } else if (rightInstruction == match[2] || (rightInstruction == match[1] && match[2].getInstruction() instanceof ConversionInstruction)) { //Left has conversion or right has conversion
+                matchCounter = 1;
+            } else {
+                matchCounter = 0; //No conversion for either instruction
+            }
 
             if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops
                 if (checkIfForLoop(leftInstruction)) {
-                    printForLoopDetected();
+                    printDynamicVariableDetected();
                     continue;
                 }
             }
             if (rightInstruction.getInstruction() instanceof LoadInstruction) {
                 if (checkIfForLoop(rightInstruction)) {
-                    printForLoopDetected();
+                    printDynamicVariableDetected();
                     continue;
                 }
             }
 
-            if (match[2].getInstruction() instanceof IfInstruction) { //If the following instruction after left and right is an IfInstruction (meaning integer comparison), such as IF_ICMPGE
-                comparisonInstruction = match[2];
+            if (match[2+matchCounter].getInstruction() instanceof IfInstruction) { //If the following instruction after left and right is an IfInstruction (meaning integer comparison), such as IF_ICMPGE
+                comparisonInstruction = match[2+matchCounter];
             } else {
-                compare = match[2]; //Comparison for non-integers, such as LCMP
-                comparisonInstruction = match[3]; //IfInstruction
+                compare = match[2+matchCounter]; //Comparison for non-integers, such as LCMP
+                comparisonInstruction = match[3+matchCounter]; //IfInstruction
             }
 
             //Fetch values for push instructions
             try {
                 leftValue = ValueLoader.getValue(leftInstruction, cpgen);
                 rightValue = ValueLoader.getValue(rightInstruction, cpgen);
-            } catch (RuntimeException e) {
-                printForLoopDetected();
+            } catch (UnableToFetchValueException e) {
+                printDynamicVariableDetected();
                 continue;
             }
 
@@ -328,20 +343,34 @@ public class ConstantFolder
 
             //Delete other handles
             try {
-                instructionList.delete(match[1], match[match.length-1]);
+                if (match[match.length-1].getInstruction() instanceof IfInstruction) {
+                    InstructionHandle tempHandle = (InstructionHandle) ((BranchInstruction)comparisonInstruction.getInstruction()).getTarget().getPrev();
+                    if (result == 1) {
+                        instructionList.delete(match[0], comparisonInstruction);
+                        if (tempHandle.getInstruction() instanceof GotoInstruction) {
+                            InstructionHandle gotoTarget = (InstructionHandle) ((BranchInstruction)tempHandle.getInstruction()).getTarget().getPrev();
+                            instructionList.delete(tempHandle, gotoTarget);
+                        }
+                    } else {
+                        instructionList.delete(match[0], tempHandle);
+                    }
+                } else {
+                    instructionList.delete(match[1], match[match.length-1]);
+                }
             } catch (TargetLostException e) {
                 e.printStackTrace();
             }
 
             System.out.println("==================================");
+            changeCounter++; //Optimisation found
             break;
         }
 
         return changeCounter;
     }
 
-    private void printForLoopDetected() {
-        System.out.println("For loop variable detected, no folding will occur.");
+    private void printDynamicVariableDetected() {
+        System.out.println("Possible Dynamic Variable detected. No folding will occur.");
         System.out.println("==================================");
     }
 
@@ -388,16 +417,16 @@ public class ConstantFolder
     private int checkFirstComparison(InstructionHandle comparison, Number leftValue, Number rightValue) {
         if (comparison.getInstruction() instanceof DCMPG) { //if double 1 greater than double 2
             if (leftValue.doubleValue() > rightValue.doubleValue()) return 1;
-            else return 0;
+            else return -1;
         } else if (comparison.getInstruction()  instanceof DCMPL) { //if double 1 less than double 2
-            if (leftValue.doubleValue() < rightValue.doubleValue()) return 1;
-            else return 0;
+            if (leftValue.doubleValue() < rightValue.doubleValue()) return -1;
+            else return 1;
         } else if (comparison.getInstruction()  instanceof FCMPG) { //if float 1 greater than float 2
             if (leftValue.floatValue() > rightValue.floatValue()) return 1;
-            else return 0;
+            else return -1;
         } else if (comparison.getInstruction()  instanceof FCMPL) { //if float 1 less than float 2
-            if (leftValue.floatValue() < rightValue.floatValue()) return 1;
-            else return 0;
+            if (leftValue.floatValue() < rightValue.floatValue()) return -1;
+            else return 1;
         } else if (comparison.getInstruction()  instanceof LCMP) { //long comparison, 0 if equal, 1 if long 1 greater than long 2, -1 if long 1 less than long 2
             if (leftValue.longValue() == rightValue.longValue()) return 0; 
             else if (leftValue.longValue() > rightValue.longValue()) return 1;
