@@ -56,9 +56,23 @@ public class Utilities {
             return left.doubleValue() * right.doubleValue();
         } else if(operation instanceof IDIV || operation instanceof  FDIV || operation instanceof LDIV || operation instanceof DDIV){
             return left.doubleValue() / right.doubleValue();
+        } else if(operation instanceof IREM || operation instanceof  FREM || operation instanceof LREM || operation instanceof DREM){
+            return left.doubleValue() % right.doubleValue();
+        } else if(operation instanceof IAND || operation instanceof  LAND){
+            return left.longValue() & right.longValue();
+        } else if(operation instanceof IOR || operation instanceof  LOR){
+            return left.longValue() | right.longValue();
+        } else if(operation instanceof IXOR || operation instanceof LXOR){
+            return left.longValue() ^ right.longValue();
+        } else if(operation instanceof ISHL || operation instanceof LSHL){
+            return left.longValue() << right.longValue();
+        } else if(operation instanceof ISHR || operation instanceof LSHR){
+            return left.longValue() >> right.longValue();
         } else {
             throw new RuntimeException("Not supported operation");
         }
+
+        //TODO Add Negation opertor
     }
 
     public static void printDynamicVariableDetected() {
