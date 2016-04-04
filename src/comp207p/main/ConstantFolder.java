@@ -25,6 +25,9 @@ public class ConstantFolder
 	JavaClass original = null;
 	JavaClass optimized = null;
 
+    //Regex for matching an instruction that pushes a value onto the stack
+    private static final String LOAD_INSTRUCTION_REGEXP = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction)";
+
 	public ConstantFolder(String classFilePath)
 	{
 		try{
@@ -103,6 +106,7 @@ public class ConstantFolder
         // Run in while loop until no more optimisations can be made
         while (optimiseCounter > 0) {
             optimiseCounter = 0;
+            optimiseCounter += optimiseNegations(instructionList, cpgen);
             optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen); //Add number of arithmetic optimisations made
             optimiseCounter += optimiseComparisons(instructionList, cpgen); //Add number of comparison optimisations made
         }
@@ -127,6 +131,60 @@ public class ConstantFolder
     }
 
     /**
+     * Fold negations
+     * @param instructionList
+     * @param cpgen
+     * @return
+     */
+    private int optimiseNegations(InstructionList instructionList, ConstantPoolGen cpgen) {
+        int changeCounter = 0;
+
+        String regExp = LOAD_INSTRUCTION_REGEXP + " (INEG|FNEG|LNEG|DNEG)";
+
+        // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
+        InstructionFinder finder = new InstructionFinder(instructionList);
+
+        for(Iterator it = finder.search(regExp); it.hasNext();) { // Iterate through instructions to look for arithmetic optimisation
+            InstructionHandle[] match = (InstructionHandle[]) it.next();
+
+            //Debug output
+            System.out.println("==================================");
+            System.out.println("Found optimisable negation");
+            Utilities.printInstructionHandles(match, cpgen);
+
+            InstructionHandle loadInstruction = match[0];
+            InstructionHandle negationInstruction = match[1];
+
+            Number value = ValueLoader.getValue(loadInstruction, cpgen);
+
+            //Multiply by -1 to negate it, inefficient but oh well
+            Double negatedValue = Utilities.foldOperation(new DMUL(), value, -1);
+
+            String type = comp207p.main.utils.Signature.getLoadInstructionSignature(loadInstruction, cpgen);
+
+            System.out.format("Folding to value %f | Type: %s\n", negatedValue, type);
+
+            int newPoolIndex = ConstantPoolInserter.insert(negatedValue, type, cpgen);
+
+            //Set left constant handle to point to new index
+            ConstantPoolInserter.replaceInstructionHandleWithLoadConstant(loadInstruction, type, newPoolIndex);
+
+            //Delete other handles
+            try {
+                instructionList.delete(match[1]);
+            } catch (TargetLostException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("==================================");
+            changeCounter++;
+
+        }
+
+        return changeCounter;
+    }
+
+    /**
      * Optimise arithmetic operations
      * @param instructionList Instruction list
      * @return Number of changes made to instructions
@@ -134,8 +192,8 @@ public class ConstantFolder
     private int optimiseArithmeticOperation(InstructionList instructionList, ConstantPoolGen cpgen) {
         int changeCounter = 0;
 
-        String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)? " +
-                "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)? " +
+        String regExp = LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
+                LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
                 "ArithmeticInstruction";
 
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
@@ -194,21 +252,15 @@ public class ConstantFolder
             Double foldedValue = Utilities.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
 
             //Get the signature of the folded value
-            char type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
+            String type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
 
-            System.out.format("Folding to value %f | Type: %c\n", foldedValue, type);
+            System.out.format("Folding to value %f | Type: %s\n", foldedValue, type);
 
             //Insert new constant into pool
             int newPoolIndex = ConstantPoolInserter.insert(foldedValue, type, cpgen);
 
             //Set left constant handle to point to new index
-            if (type == 'F' || type == 'I') { //Float or integer
-                LDC newInstruction = new LDC(newPoolIndex);
-                leftInstruction.setInstruction(newInstruction);
-            } else { //Types larger than integer use LDC2_W
-                LDC2_W newInstruction = new LDC2_W(newPoolIndex);
-                leftInstruction.setInstruction(newInstruction);
-            }
+            ConstantPoolInserter.replaceInstructionHandleWithLoadConstant(leftInstruction, type, newPoolIndex);
 
             //Delete other handles
             try {
@@ -233,8 +285,8 @@ public class ConstantFolder
      */
     private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) { //Iterate through instructions to look for comparison optimisations
         int changeCounter = 0;
-        String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)?" +
-                        "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)?" +
+        String regExp = LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)?" +
+                        LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)?" +
                         "(LCMP|DCMPG|DCMPL|FCMPG|FCMPL)? IfInstruction (ICONST GOTO ICONST)?";
 
         InstructionFinder finder = new InstructionFinder(instructionList);

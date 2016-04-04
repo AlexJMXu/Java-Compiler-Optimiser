@@ -71,8 +71,6 @@ public class Utilities {
         } else {
             throw new RuntimeException("Not supported operation");
         }
-
-        //TODO Add Negation opertor
     }
 
     public static void printDynamicVariableDetected() {

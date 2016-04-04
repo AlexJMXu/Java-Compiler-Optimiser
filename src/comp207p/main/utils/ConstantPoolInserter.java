@@ -9,35 +9,52 @@ public class ConstantPoolInserter {
      * @param cpgen
      * @return Index of newly inserted constant
      */
-    public static int insert(Double value, char type, ConstantPoolGen cpgen) {
+    public static int insert(Double value, String type, ConstantPoolGen cpgen) {
         switch (type) {
-            case 'D':
+            case "D":
                 return cpgen.addDouble(value);
-            case 'F':
+            case "F":
                 return cpgen.addFloat(value.floatValue());
-            case 'J':
+            case "J":
                 return cpgen.addLong(value.longValue());
-            case 'I':
+            case "I":
                 return cpgen.addInteger(value.intValue());
-            case 'B':
+            case "B":
                 return cpgen.addInteger(value.intValue()); //Promote byte to integer
             default:
                 throw new RuntimeException("Type not defined");
         }
     }
 
-    public static char getFoldedConstantSignature(InstructionHandle left, InstructionHandle right, ConstantPoolGen cpgen) {
+    /**
+     * Replace an instruction handle with a new load constant instruction
+     * @param h
+     * @param type
+     * @param poolIndex
+     */
+    public static void replaceInstructionHandleWithLoadConstant(InstructionHandle h, String type, int poolIndex) {
+        //Set left constant handle to point to new index
+        if (type == "F" || type == "I") { //Float or integer
+            LDC newInstruction = new LDC(poolIndex);
+            h.setInstruction(newInstruction);
+        } else { //Types larger than integer use LDC2_W
+            LDC2_W newInstruction = new LDC2_W(poolIndex);
+            h.setInstruction(newInstruction);
+        }
+    }
+
+    public static String getFoldedConstantSignature(InstructionHandle left, InstructionHandle right, ConstantPoolGen cpgen) {
         //Identify the type of the constant
         if(Signature.checkSignature(left, right, cpgen, "D")) { //double
-            return 'D';
+            return "D";
         } else if(Signature.checkSignature(left, right, cpgen, "F")) { //float
-            return 'F';
+            return "F";
         } else if(Signature.checkSignature(left, right, cpgen, "J")) { //J is the signature for long, wtf
-            return 'J';
+            return "J";
         } else if(Signature.checkSignature(left, right, cpgen, "I")) { //int
-            return 'I';
+            return "I";
         } else if(Signature.checkSignature(left, right, cpgen, "B")) {
-            return 'I'; //Promote byte to integer
+            return "I"; //Promote byte to integer
         } else {
             throw new RuntimeException("Type not defined");
         }
