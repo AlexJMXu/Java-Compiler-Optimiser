@@ -235,7 +235,7 @@ public class ConstantFolder
         int changeCounter = 0;
         String regExp = "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)?" +
                         "(ConstantPushInstruction|LDC|LDC2_W|LoadInstruction) (ConversionInstruction)?" +
-                        "(LCMP|DCMPG|DCMPL|FCMPG|FCMPL)* IfInstruction (ICONST GOTO ICONST)?";
+                        "(LCMP|DCMPG|DCMPL|FCMPG|FCMPL)? IfInstruction (ICONST GOTO ICONST)?";
 
         InstructionFinder finder = new InstructionFinder(instructionList);
 
