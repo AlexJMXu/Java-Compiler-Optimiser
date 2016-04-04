@@ -60,4 +60,9 @@ public class Utilities {
             throw new RuntimeException("Not supported operation");
         }
     }
+
+    public static void printDynamicVariableDetected() {
+        System.out.println("Possible Dynamic Variable detected. No folding will occur.");
+        System.out.println("==================================");
+    }
 }
