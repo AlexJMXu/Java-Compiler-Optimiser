@@ -63,17 +63,19 @@ public class ValueLoader {
             //If there is an IINC while scanning, we need to accumulate that on top of the ISTORE value
             if(instruction instanceof IINC) {
                 IINC increment = (IINC) instruction;
-                System.out.println("Found increment instruction");
 
-                //If it's in a for loop, we cannot get the value
-                if(ForLoopChecker.checkIfForLoop(h)) {
-                    throw new UnableToFetchValueException("IINC in for loop");
+                if(increment.getIndex() == localVariableIndex) {
+                    System.out.println("Found increment instruction");
+
+                    //If it's in a for loop, we cannot get the value
+                    if(ForLoopChecker.checkIfForLoop(h)) {
+                        throw new UnableToFetchValueException("IINC in for loop");
+                    }
+
+                    System.out.format("%s | Incrementing by %d | Index: %d\n\n", increment, increment.getIncrement(), increment.getIndex());
+                    incrementAccumulator += increment.getIncrement();
                 }
-
-                System.out.format("%s | Incrementing by %d | Index: %d\n\n", increment, increment.getIncrement(), increment.getIndex());
-                incrementAccumulator += increment.getIncrement();
             }
-
 
             handleIterator = handleIterator.getPrev();
             instruction = handleIterator.getInstruction();
