@@ -6,8 +6,6 @@ public class ConstantPoolInserter {
 
     /**
      * Inserts the folded value into constant pool
-     * @param left
-     * @param right
      * @param cpgen
      * @return Index of newly inserted constant
      */
