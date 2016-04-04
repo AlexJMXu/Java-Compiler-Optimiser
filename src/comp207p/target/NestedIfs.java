@@ -7,9 +7,10 @@ public class NestedIfs {
 
 
         if(a + b > 4) {
+            b+= 14;
             a+= 20;
 
-            if(a > 25) {
+            if(b + a == 48) {
                 return a;
             }
         }
