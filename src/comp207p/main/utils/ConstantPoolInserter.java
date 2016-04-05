@@ -36,7 +36,7 @@ public class ConstantPoolInserter {
      */
     public static void replaceInstructionHandleWithLoadConstant(InstructionHandle h, String type, int poolIndex) {
         //Set left constant handle to point to new index
-        if (type.equals("F") || type.equals("I")) { //Float or integer
+        if (type.equals("F") || type.equals("I") || type.equals("S")) { //Float, short or integer
             LDC newInstruction = new LDC(poolIndex);
             h.setInstruction(newInstruction);
         } else { //Types larger than integer use LDC2_W
