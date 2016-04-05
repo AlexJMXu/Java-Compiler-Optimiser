@@ -9,7 +9,7 @@ public class Switch {
         switch (bar) {
             case 16032:
             case 1:
-                return bar;
+                return bar + 4;
             default:
                 return -1;
         }

@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 public class SwitchTest {
     @Test
     public void foo() throws Exception {
-        assertEquals(16032, new Switch().foo());
+        assertEquals(16036, new Switch().foo());
     }
 
 }
