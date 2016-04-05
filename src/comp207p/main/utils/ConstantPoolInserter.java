@@ -19,6 +19,8 @@ public class ConstantPoolInserter {
                 return cpgen.addLong(value.longValue());
             case "I":
                 return cpgen.addInteger(value.intValue());
+            case "S":
+                return cpgen.addInteger(value.intValue()); //Promote short to integer    
             case "B":
                 return cpgen.addInteger(value.intValue()); //Promote byte to integer
             default:
@@ -51,6 +53,8 @@ public class ConstantPoolInserter {
             return "F";
         } else if(Signature.checkSignature(left, right, cpgen, "J")) { //J is the signature for long, wtf
             return "J";
+        } else if(Signature.checkSignature(left, right, cpgen, "S")) { //short
+            return "S";
         } else if(Signature.checkSignature(left, right, cpgen, "I")) { //int
             return "I";
         } else if(Signature.checkSignature(left, right, cpgen, "B")) {
