@@ -286,7 +286,7 @@ public class ConstantFolder
     private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) { //Iterate through instructions to look for comparison optimisations
         int changeCounter = 0;
         String regExp = LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)?" +
-                        LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)?" +
+                        LOAD_INSTRUCTION_REGEXP + "?" + " (ConversionInstruction)?" +
                         "(LCMP|DCMPG|DCMPL|FCMPG|FCMPL)? IfInstruction (ICONST GOTO ICONST)?";
 
         InstructionFinder finder = new InstructionFinder(instructionList);
@@ -299,24 +299,36 @@ public class ConstantFolder
             System.out.println("Found optimisable comparison set");
             Utilities.printInstructionHandles(match, cpgen);
 
-            Number leftValue, rightValue;
-            InstructionHandle leftInstruction, rightInstruction, compare = null, comparisonInstruction;
+            Number leftValue = 0, rightValue = 0;
+            InstructionHandle leftInstruction = null, rightInstruction = null, compare = null, comparisonInstruction = null;
 
             //Get instructions
             leftInstruction = match[0]; //Left instruction is always first match
-            if (match[1].getInstruction() instanceof ConversionInstruction) { 
+            if (match[1].getInstruction() instanceof ConversionInstruction
+                && !(match[2].getInstruction() instanceof IfInstruction)) { 
                 rightInstruction = match[2]; //If conversion exists for left, then right instruction occurs after it
-            } else {
+            } else if (!(match[1].getInstruction() instanceof IfInstruction)) {
                 rightInstruction = match[1]; //No conversion instruction for left
+            } else {
+                rightInstruction = null;
             }
 
             int matchCounter = 0;
-            if (rightInstruction == match[2] && match[3].getInstruction() instanceof ConversionInstruction) { //If left has conversion and conversion exists for right
-                matchCounter = 2; 
-            } else if (rightInstruction == match[2] || (rightInstruction == match[1] && match[2].getInstruction() instanceof ConversionInstruction)) { //Left has conversion or right has conversion
-                matchCounter = 1;
+            if (rightInstruction != null) {
+                if (rightInstruction == match[2] 
+                    && match[3].getInstruction() instanceof ConversionInstruction) { //If left has conversion and conversion exists for right
+                    matchCounter = 2; 
+                } else if (rightInstruction == match[2] 
+                            || (rightInstruction == match[1] 
+                            && match[2].getInstruction() instanceof ConversionInstruction)) { //Left has conversion or right has conversion
+                    matchCounter = 1;
+                } else {
+                    matchCounter = 0; //No conversion for either instruction
+                }
             } else {
-                matchCounter = 0; //No conversion for either instruction
+                if (!(match[1].getInstruction() instanceof ConversionInstruction)) {
+                    matchCounter = -1;
+                }
             }
 
             if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops
@@ -325,7 +337,7 @@ public class ConstantFolder
                     continue;
                 }
             }
-            if (rightInstruction.getInstruction() instanceof LoadInstruction) {
+            if (rightInstruction != null && rightInstruction.getInstruction() instanceof LoadInstruction) {
                 if (checkIfForLoop(rightInstruction)) {
                     Utilities.printDynamicVariableDetected();
                     continue;
@@ -342,7 +354,9 @@ public class ConstantFolder
             //Fetch values for push instructions
             try {
                 leftValue = ValueLoader.getValue(leftInstruction, cpgen);
-                rightValue = ValueLoader.getValue(rightInstruction, cpgen);
+                if (rightInstruction != null) { 
+                    rightValue = ValueLoader.getValue(rightInstruction, cpgen);
+                }
             } catch (UnableToFetchValueException e) {
                 Utilities.printDynamicVariableDetected();
                 continue;
@@ -352,11 +366,15 @@ public class ConstantFolder
 
             int result = 0;
 
-            if (comparisonInstruction == match[2]) { //Integer comparison
-                result = ComparisonChecker.checkIntComparison(comparison, leftValue, rightValue);
-            } else { //Non-integer type comparison
-                result = ComparisonChecker.checkFirstComparison(compare, leftValue, rightValue);
-                result = ComparisonChecker.checkSecondComparison(comparison, result);
+            if (rightInstruction != null) {
+                if (comparisonInstruction == match[2]) { //Integer comparison
+                    result = ComparisonChecker.checkIntComparison(comparison, leftValue, rightValue);
+                } else { //Non-integer type comparison
+                    result = ComparisonChecker.checkFirstComparison(compare, leftValue, rightValue);
+                    result = ComparisonChecker.checkSecondComparison(comparison, result);;
+                }
+            } else {
+                result = ComparisonChecker.checkSecondComparison(comparison, leftValue.intValue());
             }
 
             //Set left constant handle to point to new index
