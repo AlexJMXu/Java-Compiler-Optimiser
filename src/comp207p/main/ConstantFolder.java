@@ -14,7 +14,7 @@ import org.apache.bcel.classfile.*;
 import org.apache.bcel.generic.*;
 import org.apache.bcel.util.InstructionFinder;
 
-import static comp207p.main.utils.ForLoopChecker.checkIfForLoop;
+import static comp207p.main.utils.ForLoopChecker.checkDynamicVariable;
 
 
 public class ConstantFolder
@@ -150,12 +150,12 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable negation");
-            Utilities.printInstructionHandles(match, cpgen);
+            Utilities.printInstructionHandles(match, cpgen, instructionList);
 
             InstructionHandle loadInstruction = match[0];
             InstructionHandle negationInstruction = match[1];
 
-            Number value = ValueLoader.getValue(loadInstruction, cpgen);
+            Number value = ValueLoader.getValue(loadInstruction, cpgen, instructionList);
 
             //Multiply by -1 to negate it, inefficient but oh well
             Double negatedValue = Utilities.foldOperation(new DMUL(), value, -1);
@@ -205,7 +205,7 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable arithmetic set");
-            Utilities.printInstructionHandles(match, cpgen);
+            Utilities.printInstructionHandles(match, cpgen, instructionList);
 
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, operationInstruction;
@@ -226,13 +226,13 @@ public class ConstantFolder
             }
 
             if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops
-                if (checkIfForLoop(leftInstruction)) {
+                if (checkDynamicVariable(leftInstruction, instructionList)) {
                     Utilities.printDynamicVariableDetected();
                     continue;
                 }
             }
             if (rightInstruction.getInstruction() instanceof LoadInstruction) {
-                if (checkIfForLoop(rightInstruction)) {
+                if (checkDynamicVariable(rightInstruction, instructionList)) {
                     Utilities.printDynamicVariableDetected();
                     continue;
                 }
@@ -240,8 +240,8 @@ public class ConstantFolder
 
             //Fetch values for push instructions
             try {
-                leftValue = ValueLoader.getValue(leftInstruction, cpgen);
-                rightValue = ValueLoader.getValue(rightInstruction, cpgen);
+                leftValue = ValueLoader.getValue(leftInstruction, cpgen, instructionList);
+                rightValue = ValueLoader.getValue(rightInstruction, cpgen, instructionList);
             } catch (UnableToFetchValueException e) {
                 Utilities.printDynamicVariableDetected();
                 continue;
@@ -297,7 +297,7 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable comparison set");
-            Utilities.printInstructionHandles(match, cpgen);
+            Utilities.printInstructionHandles(match, cpgen, instructionList);
 
             Number leftValue = 0, rightValue = 0;
             InstructionHandle leftInstruction = null, rightInstruction = null, compare = null, comparisonInstruction = null;
@@ -332,13 +332,13 @@ public class ConstantFolder
             }
 
             if (leftInstruction.getInstruction() instanceof LoadInstruction) { //Recognise for loops
-                if (checkIfForLoop(leftInstruction)) {
+                if (checkDynamicVariable(leftInstruction, instructionList)) {
                     Utilities.printDynamicVariableDetected();
                     continue;
                 }
             }
             if (rightInstruction != null && rightInstruction.getInstruction() instanceof LoadInstruction) {
-                if (checkIfForLoop(rightInstruction)) {
+                if (checkDynamicVariable(rightInstruction, instructionList)) {
                     Utilities.printDynamicVariableDetected();
                     continue;
                 }
@@ -353,9 +353,9 @@ public class ConstantFolder
 
             //Fetch values for push instructions
             try {
-                leftValue = ValueLoader.getValue(leftInstruction, cpgen);
+                leftValue = ValueLoader.getValue(leftInstruction, cpgen, instructionList);
                 if (rightInstruction != null) { 
-                    rightValue = ValueLoader.getValue(rightInstruction, cpgen);
+                    rightValue = ValueLoader.getValue(rightInstruction, cpgen, instructionList);
                 }
             } catch (UnableToFetchValueException e) {
                 Utilities.printDynamicVariableDetected();

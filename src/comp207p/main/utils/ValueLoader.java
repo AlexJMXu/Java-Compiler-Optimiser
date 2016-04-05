@@ -11,10 +11,10 @@ public class ValueLoader {
      * @param cpgen Constant pool of the class
      * @return Instruction handle value
      */
-    public static Number getValue(InstructionHandle h, ConstantPoolGen cpgen) throws UnableToFetchValueException {
+    public static Number getValue(InstructionHandle h, ConstantPoolGen cpgen, InstructionList list) throws UnableToFetchValueException {
         Instruction instruction = h.getInstruction();
         if(instruction instanceof LoadInstruction) {
-            return ValueLoader.getLoadInstructionValue(h, cpgen);
+            return ValueLoader.getLoadInstructionValue(h, cpgen, list);
         } else {
             return ValueLoader.getConstantValue(h, cpgen);
         }
@@ -48,7 +48,7 @@ public class ValueLoader {
      * @param cpgen Constant pool of the class
      * @return Load instruction value
      */
-    public static Number getLoadInstructionValue(InstructionHandle h, ConstantPoolGen cpgen) throws UnableToFetchValueException {
+    public static Number getLoadInstructionValue(InstructionHandle h, ConstantPoolGen cpgen, InstructionList list) throws UnableToFetchValueException {
         Instruction instruction = h.getInstruction();
         if(!(instruction instanceof LoadInstruction)) {
             throw new RuntimeException("InstructionHandle has to be of type LoadInstruction");
@@ -68,7 +68,7 @@ public class ValueLoader {
                     System.out.println("Found increment instruction");
 
                     //If it's in a for loop, we cannot get the value
-                    if(ForLoopChecker.checkIfForLoop(h)) {
+                    if(ForLoopChecker.checkDynamicVariable(h, list)) {
                         throw new UnableToFetchValueException("IINC in for loop");
                     }
 
