@@ -54,7 +54,7 @@ public class ConstantPoolInserter {
         } else if(Signature.checkSignature(left, right, cpgen, "J")) { //J is the signature for long, wtf
             return "J";
         } else if(Signature.checkSignature(left, right, cpgen, "S")) { //short
-            return "S";
+            return "I";
         } else if(Signature.checkSignature(left, right, cpgen, "I")) { //int
             return "I";
         } else if(Signature.checkSignature(left, right, cpgen, "B")) {

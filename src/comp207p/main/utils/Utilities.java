@@ -28,7 +28,7 @@ public class Utilities {
 
     public static void printInstructionHandles(InstructionHandle[] handles, ConstantPoolGen cpgen, InstructionList list) {
         for(InstructionHandle h : handles) {
-            if(h.getInstruction() instanceof LoadInstruction || h.getInstruction() instanceof CPInstruction) {
+            if(h.getInstruction() instanceof LoadInstruction || h.getInstruction() instanceof LDC2_W) {
                 try {
                     System.out.format("%s | Val: %s\n", h, ValueLoader.getValue(h, cpgen, list));
                 } catch (UnableToFetchValueException e) {
