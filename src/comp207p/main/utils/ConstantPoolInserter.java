@@ -60,7 +60,9 @@ public class ConstantPoolInserter {
         } else if(Signature.checkSignature(left, right, cpgen, "B")) {
             return "I"; //Promote byte to integer
         } else {
-            throw new RuntimeException("Type not defined");
+            throw new RuntimeException("Type not defined: "
+                    + Signature.getLoadInstructionSignature(left, cpgen) + " "
+                    + Signature.getLoadInstructionSignature(right, cpgen));
         }
     }
 
