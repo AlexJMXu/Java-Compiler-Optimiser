@@ -158,11 +158,11 @@ public class ConstantFolder
             Number value = ValueLoader.getValue(loadInstruction, cpgen, instructionList);
 
             //Multiply by -1 to negate it, inefficient but oh well
-            Double negatedValue = Utilities.foldOperation(new DMUL(), value, -1);
+            Number negatedValue = Utilities.foldOperation(new DMUL(), value, -1);
 
             String type = comp207p.main.utils.Signature.getLoadInstructionSignature(loadInstruction, cpgen);
 
-            System.out.format("Folding to value %f | Type: %s\n", negatedValue, type);
+            System.out.format("Folding to value %s | Type: %s\n", negatedValue, type);
 
             int newPoolIndex = ConstantPoolInserter.insert(negatedValue, type, cpgen);
 
@@ -249,12 +249,12 @@ public class ConstantFolder
 
             ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
 
-            Double foldedValue = Utilities.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
+            Number foldedValue = Utilities.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
 
             //Get the signature of the folded value
             String type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
 
-            System.out.format("Folding to value %f | Type: %s\n", foldedValue, type);
+            System.out.format("Folding to value %s | Type: %s\n", foldedValue, type);
 
             //Insert new constant into pool
             int newPoolIndex = ConstantPoolInserter.insert(foldedValue, type, cpgen);
@@ -319,9 +319,9 @@ public class ConstantFolder
                     && match[3].getInstruction() instanceof ConversionInstruction) { //If left has conversion and conversion exists for right
                     matchCounter = 2; 
                 } else if (rightInstruction == match[2] 
-                            || (rightInstruction == match[1] 
-                            && match[2].getInstruction() instanceof ConversionInstruction)) { //Left has conversion or right has conversion
-                    matchCounter = 1;
+                    || (rightInstruction == match[1]
+                    && match[2].getInstruction() instanceof ConversionInstruction)) { //Left has conversion or right has conversion
+                        matchCounter = 1;
                 } else {
                     matchCounter = 0; //No conversion for either instruction
                 }

@@ -9,10 +9,10 @@ public class ConstantPoolInserter {
      * @param cpgen
      * @return Index of newly inserted constant
      */
-    public static int insert(Double value, String type, ConstantPoolGen cpgen) {
+    public static int insert(Number value, String type, ConstantPoolGen cpgen) {
         switch (type) {
             case "D":
-                return cpgen.addDouble(value);
+                return cpgen.addDouble(value.doubleValue());
             case "F":
                 return cpgen.addFloat(value.floatValue());
             case "J":
