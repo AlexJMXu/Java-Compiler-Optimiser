@@ -47,17 +47,28 @@ public class Utilities {
      * @param right Right side of binary operator
      * @return Result of the calculation
      */
-    public static double foldOperation(ArithmeticInstruction operation, Number left, Number right) {
-        if(operation instanceof IADD || operation instanceof FADD || operation instanceof LADD || operation instanceof DADD) {
+    public static Number foldOperation(ArithmeticInstruction operation, Number left, Number right) {
+        if(operation instanceof IADD || operation instanceof LADD) {
+            return left.longValue() + right.longValue();
+        } else if(operation instanceof FADD ||  operation instanceof DADD) {
             return left.doubleValue() + right.doubleValue();
-        } else if(operation instanceof ISUB || operation instanceof  FSUB || operation instanceof LSUB || operation instanceof DSUB){
+        } else if(operation instanceof ISUB || operation instanceof LSUB) {
+            return left.longValue() - right.longValue();
+        } else if(operation instanceof FSUB ||  operation instanceof DSUB) {
             return left.doubleValue() - right.doubleValue();
-        } else if(operation instanceof IMUL || operation instanceof  FMUL || operation instanceof LMUL || operation instanceof DMUL){
+        } else if(operation instanceof IMUL || operation instanceof LMUL){
+            return left.longValue() * right.longValue();
+        } else if(operation instanceof FMUL ||  operation instanceof DMUL) {
             return left.doubleValue() * right.doubleValue();
-        } else if(operation instanceof IDIV || operation instanceof  FDIV || operation instanceof LDIV || operation instanceof DDIV){
+        } else if(operation instanceof IDIV || operation instanceof LDIV){
+            return left.longValue() / right.longValue();
+        } else if(operation instanceof FDIV ||  operation instanceof DDIV) {
             return left.doubleValue() / right.doubleValue();
-        } else if(operation instanceof IREM || operation instanceof  FREM || operation instanceof LREM || operation instanceof DREM){
+        } else if(operation instanceof IREM || operation instanceof LREM){
+            return left.longValue() % right.longValue();
+        } else if(operation instanceof FREM ||  operation instanceof DREM) {
             return left.doubleValue() % right.doubleValue();
+        //Bit operations
         } else if(operation instanceof IAND || operation instanceof  LAND){
             return left.longValue() & right.longValue();
         } else if(operation instanceof IOR || operation instanceof  LOR){
