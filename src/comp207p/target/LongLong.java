@@ -5,7 +5,8 @@ package comp207p.target;
  */
 public class LongLong {
     public boolean foo() {
-        long a = 10000000000000001L + 400000;
+        long aa = 400000;
+        long a = 10000000000000001L + aa;
         return a == 10000000000400001L;
     }
 }
