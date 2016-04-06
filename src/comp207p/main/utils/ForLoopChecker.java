@@ -14,7 +14,8 @@ public class ForLoopChecker {
                 previousInstruction = handleIterator.getPrev().getInstruction();
                 if (currentInstruction instanceof GotoInstruction
                         && (previousInstruction instanceof IINC
-                        || previousInstruction instanceof StoreInstruction)) {
+                        || previousInstruction instanceof StoreInstruction)
+                        && (handleIterator.getPosition() > ((BranchInstruction) currentInstruction).getTarget().getPosition())) {
                     if (((BranchInstruction) currentInstruction).getTarget().getInstruction().equals(checkingInstruction)) {
                         return true;
                     }

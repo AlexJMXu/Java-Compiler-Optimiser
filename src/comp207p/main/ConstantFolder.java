@@ -103,9 +103,9 @@ public class ConstantFolder
         // Run in while loop until no more optimisations can be made
         while (optimiseCounter > 0) {
             optimiseCounter = 0;
+            optimiseCounter += optimiseComparisons(instructionList, cpgen); //Add number of comparison optimisations made
             optimiseCounter += optimiseNegations(instructionList, cpgen);
             optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen); //Add number of arithmetic optimisations made
-            optimiseCounter += optimiseComparisons(instructionList, cpgen); //Add number of comparison optimisations made
         }
 
         // setPositions(true) checks whether jump handles
