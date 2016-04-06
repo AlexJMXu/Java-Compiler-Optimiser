@@ -4,7 +4,7 @@ public class BConditional{
     public int foo(){
         int a = 5;
 
-        if(returnFalse()){
+        if(a > 5){
             a = 4;
         }
         return a + 3;

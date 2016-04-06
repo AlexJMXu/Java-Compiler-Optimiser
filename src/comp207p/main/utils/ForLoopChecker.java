@@ -4,21 +4,26 @@ import org.apache.bcel.generic.*;
 
 public class ForLoopChecker {
     public static boolean checkDynamicVariable(InstructionHandle h, InstructionList list) {
+        Instruction checkingInstruction = h.getInstruction();
+        Instruction currentInstruction, previousInstruction, currentSubInstruction;
         InstructionHandle handleIterator = list.getStart();
         while(handleIterator != null) {
             try {
                 handleIterator = handleIterator.getNext();
-                if (handleIterator.getInstruction() instanceof GotoInstruction
-                        && (handleIterator.getPrev().getInstruction() instanceof IINC
-                        || handleIterator.getPrev().getInstruction() instanceof StoreInstruction)) {
-                    if (((BranchInstruction) handleIterator.getInstruction()).getTarget().getInstruction().equals(h.getInstruction())) {
+                currentInstruction = handleIterator.getInstruction();
+                previousInstruction = handleIterator.getPrev().getInstruction();
+                if (currentInstruction instanceof GotoInstruction
+                        && (previousInstruction instanceof IINC
+                        || previousInstruction instanceof StoreInstruction)) {
+                    if (((BranchInstruction) currentInstruction).getTarget().getInstruction().equals(checkingInstruction)) {
                         return true;
                     }
                     InstructionHandle subIterator = handleIterator;
                     while (subIterator != null) {
                         subIterator = subIterator.getPrev();
-                        if (subIterator.getInstruction() instanceof StoreInstruction) {
-                            if (((StoreInstruction)subIterator.getInstruction()).getIndex() == ((LoadInstruction)h.getInstruction()).getIndex()) {
+                        currentSubInstruction = subIterator.getInstruction();
+                        if (currentSubInstruction instanceof StoreInstruction) {
+                            if (((StoreInstruction)currentSubInstruction).getIndex() == ((LoadInstruction)checkingInstruction).getIndex()) {
                                 return true;
                             }
                         } else {
@@ -27,6 +32,9 @@ public class ForLoopChecker {
                             }
                         }
                     }
+                }
+                else if (handleIterator.getInstruction() instanceof IfInstruction){
+                    //System.out.println("If instruction target: " + (BranchInstruction) handleIterator.getInstruction()).getTarget().getInstruction());
                 }
             } catch (NullPointerException e) {
                 break;
