@@ -209,14 +209,14 @@ public class ConstantFolder
         for(Iterator it = finder.search(regExp); it.hasNext();) { // Iterate through instructions to look for arithmetic optimisation
             InstructionHandle[] match = (InstructionHandle[]) it.next();
 
+            //Debug output
+            System.out.println("==================================");
+            System.out.println("Found optimisable arithmetic set");
+
             if (match[0].getInstruction() instanceof ReturnInstruction) {
                 System.out.println("Return instruction found, will optimise later.");
                 break;
             } 
-
-            //Debug output
-            System.out.println("==================================");
-            System.out.println("Found optimisable arithmetic set");
 
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, operationInstruction;
@@ -298,7 +298,7 @@ public class ConstantFolder
      */
     private int optimiseComparisons(InstructionList instructionList, ConstantPoolGen cpgen) { //Iterate through instructions to look for comparison optimisations
         int changeCounter = 0;
-        String regExp = LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)?" +
+        String regExp =  LOAD_INSTRUCTION_REGEXP + "InvokeInstruction?" + " (ConversionInstruction)?" +
                         LOAD_INSTRUCTION_REGEXP + "?" + " (ConversionInstruction)?" +
                         "(LCMP|DCMPG|DCMPL|FCMPG|FCMPL)? IfInstruction (ICONST GOTO ICONST)?";
 
@@ -310,6 +310,11 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable comparison set");
+
+            if (match[1].getInstruction() instanceof InvokeInstruction ) {
+                System.out.println("Method detected, unable to fold");
+                continue;
+            }
 
             Number leftValue = 0, rightValue = 0;
             InstructionHandle leftInstruction = null, rightInstruction = null, compare = null, comparisonInstruction = null;
