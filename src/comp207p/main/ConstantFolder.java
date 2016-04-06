@@ -191,10 +191,10 @@ public class ConstantFolder
     private int optimiseArithmeticOperation(InstructionList instructionList, ConstantPoolGen cpgen) {
         int changeCounter = 0;
             
-        regExp = LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
+        String regExp = LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
                 LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
                 "ArithmeticInstruction";
-                    
+
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         InstructionFinder finder = new InstructionFinder(instructionList);
 
