@@ -104,9 +104,9 @@ public class ConstantFolder
         while (optimiseCounter > 0) {
             optimiseCounter = 0;
             optimiseCounter += optimiseNegations(instructionList, cpgen);
-            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen, 0); //Add number of arithmetic optimisations made
+            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen); //Add number of arithmetic optimisations made
             optimiseCounter += optimiseComparisons(instructionList, cpgen); //Add number of comparison optimisations made
-            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen, 1);
+            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen);
         }
 
         // setPositions(true) checks whether jump handles
@@ -188,7 +188,7 @@ public class ConstantFolder
      * @param instructionList Instruction list
      * @return Number of changes made to instructions
      */
-    private int optimiseArithmeticOperation(InstructionList instructionList, ConstantPoolGen cpgen, int isReturn) {
+    private int optimiseArithmeticOperation(InstructionList instructionList, ConstantPoolGen cpgen) {
         int changeCounter = 0;
 
         String regExp = "";
@@ -212,11 +212,6 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable arithmetic set");
-
-            if (match[0].getInstruction() instanceof ReturnInstruction) {
-                System.out.println("Return instruction found, will optimise later.");
-                break;
-            } 
 
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, operationInstruction;
