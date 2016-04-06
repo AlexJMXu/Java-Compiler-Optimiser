@@ -68,7 +68,7 @@ public class ValueLoader {
                     System.out.println("Found increment instruction");
 
                     //If it's in a for loop, we cannot get the value
-                    if(ForLoopChecker.checkDynamicVariable(h, list)) {
+                    if(DynamicVariableChecker.checkDynamicVariable(h, list)) {
                         throw new UnableToFetchValueException("IINC in for loop");
                     }
 

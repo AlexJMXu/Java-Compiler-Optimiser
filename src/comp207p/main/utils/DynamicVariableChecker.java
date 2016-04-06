@@ -2,7 +2,7 @@ package comp207p.main.utils;
 
 import org.apache.bcel.generic.*;
 
-public class ForLoopChecker {
+public class DynamicVariableChecker {
     public static boolean checkDynamicVariable(InstructionHandle h, InstructionList list) {
         if (checkIfCondition(h, list) || checkForLoop(h, list)) {
             return true;

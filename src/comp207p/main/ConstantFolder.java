@@ -11,7 +11,7 @@ import org.apache.bcel.classfile.*;
 import org.apache.bcel.generic.*;
 import org.apache.bcel.util.InstructionFinder;
 
-import static comp207p.main.utils.ForLoopChecker.checkDynamicVariable;
+import static comp207p.main.utils.DynamicVariableChecker.checkDynamicVariable;
 
 
 public class ConstantFolder
