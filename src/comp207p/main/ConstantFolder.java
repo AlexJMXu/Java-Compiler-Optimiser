@@ -101,6 +101,9 @@ public class ConstantFolder
         int optimiseCounter = 1;
         
         // Run in while loop until no more optimisations can be made
+        // optimiseArithmeticOperations is run twice
+        // once before comparisons are optimised, and once after dead
+        // code has been eliminated from optimiseComparisons
         while (optimiseCounter > 0) {
             optimiseCounter = 0;
             optimiseCounter += optimiseNegations(instructionList, cpgen);
@@ -300,6 +303,7 @@ public class ConstantFolder
 
             if (match[1].getInstruction() instanceof InvokeInstruction ) {
                 System.out.println("Method detected, unable to fold");
+                System.out.println("==================================");
                 continue;
             }
 
