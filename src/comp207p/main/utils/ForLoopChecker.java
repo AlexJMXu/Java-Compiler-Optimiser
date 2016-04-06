@@ -33,9 +33,6 @@ public class ForLoopChecker {
                         }
                     }
                 }
-                else if (handleIterator.getInstruction() instanceof IfInstruction){
-                    //System.out.println("If instruction target: " + (BranchInstruction) handleIterator.getInstruction()).getTarget().getInstruction());
-                }
             } catch (NullPointerException e) {
                 break;
             }
