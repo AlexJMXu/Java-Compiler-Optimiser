@@ -6,10 +6,10 @@ public class BConditional{
 
         if(a > 5){
             a = 4;
-        }
-        else{
+        } else {
             a = 3;
         }
+
         return a + 3;
     }
 

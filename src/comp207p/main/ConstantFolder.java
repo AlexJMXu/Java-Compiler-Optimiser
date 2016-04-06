@@ -103,9 +103,10 @@ public class ConstantFolder
         // Run in while loop until no more optimisations can be made
         while (optimiseCounter > 0) {
             optimiseCounter = 0;
-            optimiseCounter += optimiseComparisons(instructionList, cpgen); //Add number of comparison optimisations made
             optimiseCounter += optimiseNegations(instructionList, cpgen);
-            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen); //Add number of arithmetic optimisations made
+            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen, 0); //Add number of arithmetic optimisations made
+            optimiseCounter += optimiseComparisons(instructionList, cpgen); //Add number of comparison optimisations made
+            optimiseCounter += optimiseArithmeticOperation(instructionList, cpgen, 1);
         }
 
         // setPositions(true) checks whether jump handles
@@ -187,18 +188,31 @@ public class ConstantFolder
      * @param instructionList Instruction list
      * @return Number of changes made to instructions
      */
-    private int optimiseArithmeticOperation(InstructionList instructionList, ConstantPoolGen cpgen) {
+    private int optimiseArithmeticOperation(InstructionList instructionList, ConstantPoolGen cpgen, int isReturn) {
         int changeCounter = 0;
 
-        String regExp = LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
-                LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
-                "ArithmeticInstruction";
+        String regExp = "";
+
+        if (isReturn == 0) {
+            regExp = "ReturnInstruction?" + LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
+                    LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
+                    "ArithmeticInstruction";
+        } else {
+            regExp = LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
+                    LOAD_INSTRUCTION_REGEXP + " (ConversionInstruction)? " +
+                    "ArithmeticInstruction";
+        }
 
         // Search for instruction list where two constants are loaded from the pool, followed by an arithmetic
         InstructionFinder finder = new InstructionFinder(instructionList);
 
         for(Iterator it = finder.search(regExp); it.hasNext();) { // Iterate through instructions to look for arithmetic optimisation
-            InstructionHandle[] match = (InstructionHandle[]) it.next(); 
+            InstructionHandle[] match = (InstructionHandle[]) it.next();
+
+            if (match[0].getInstruction() instanceof ReturnInstruction) {
+                System.out.println("Return instruction found, will optimise later.");
+                break;
+            } 
 
             //Debug output
             System.out.println("==================================");
