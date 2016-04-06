@@ -1,7 +1,7 @@
 package comp207p.target;
 
 public class AConditional {
-    public void foo(){
+    public int foo(){
         int a = 3;
         if(a == 2){
             a = 4;
@@ -14,5 +14,7 @@ public class AConditional {
         a = 4;
 
         b = a + 4;
+
+        return b;
     }
 }
