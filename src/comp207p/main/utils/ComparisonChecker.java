@@ -73,26 +73,26 @@ public class ComparisonChecker {
      * @return Comparison result
      */
     public static int checkSecondComparison(IfInstruction comparison, int value) {
-        if (comparison instanceof IFEQ) { //if equal
+        if (comparison instanceof IFEQ || comparison instanceof IF_ICMPEQ) { //if equal
             if (value == 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFGE) { //if greater than or equal
+        } else if (comparison instanceof IFGE || comparison instanceof IF_ICMPGE) { //if greater than or equal
             if (value >= 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFGT) { //if greater than
+        } else if (comparison instanceof IFGT || comparison instanceof IF_ICMPGT) { //if greater than
             if (value > 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFLE) { //if less than or equal
+        } else if (comparison instanceof IFLE || comparison instanceof IF_ICMPLE) { //if less than or equal
             if (value <= 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFLT) { //if less than
+        } else if (comparison instanceof IFLT || comparison instanceof IF_ICMPLT) { //if less than
             if (value < 0) return 1;
             else return 0;
-        } else if (comparison instanceof IFNE) { //if not equal
+        } else if (comparison instanceof IFNE || comparison instanceof IF_ICMPNE) { //if not equal
             if (value != 0) return 1;
             else return 0;
         } else {
-            throw new RuntimeException("Comparison not defined");
+            throw new RuntimeException("Comparison not defined, got: " + comparison.getClass());
         }
     }
 }

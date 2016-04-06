@@ -26,11 +26,11 @@ public class Utilities {
         System.out.format("Total constants: %d\n", constantCount);
     }
 
-    public static void printInstructionHandles(InstructionHandle[] handles, ConstantPoolGen cpgen, InstructionList list) {
+    public static void printInstructionHandles(InstructionHandle[] handles, ConstantPoolGen cpgen, InstructionList list, String type) {
         for(InstructionHandle h : handles) {
             if(h.getInstruction() instanceof LoadInstruction || h.getInstruction() instanceof LDC2_W) {
                 try {
-                    System.out.format("%s | Val: %s\n", h, ValueLoader.getValue(h, cpgen, list));
+                    System.out.format("%s | Val: %s\n", h, ValueLoader.getValue(h, cpgen, list, type));
                 } catch (UnableToFetchValueException e) {
                     System.out.format("%s | Val: Could not get\n", h);
                 }

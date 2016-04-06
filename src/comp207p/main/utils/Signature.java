@@ -9,23 +9,25 @@ public class Signature {
      * @param cpgen Constant pool of the class
      * @return Load instruction value signature
      */
-    public static String getLoadInstructionSignature(InstructionHandle h, ConstantPoolGen cpgen) {
+    public static String getInstructionSignature(InstructionHandle h, ConstantPoolGen cpgen) {
         Instruction instruction = h.getInstruction();
-        if(!(instruction instanceof LoadInstruction)) {
-            throw new RuntimeException("InstructionHandle has to be of type LoadInstruction");
+        if(!(instruction instanceof TypedInstruction)) {
+            throw new RuntimeException("InstructionHandle has to be of type TypedInstruction instead got: " + instruction.getClass());
         }
 
-        int localVariableIndex = ((LocalVariableInstruction) instruction).getIndex();
+        if(instruction instanceof LoadInstruction) {
+            int localVariableIndex = ((LocalVariableInstruction) instruction).getIndex();
 
-        InstructionHandle handleIterator = h;
-        while(!(instruction instanceof StoreInstruction) || ((StoreInstruction) instruction).getIndex() != localVariableIndex) {
+            InstructionHandle handleIterator = h;
+            while (!(instruction instanceof StoreInstruction) || ((StoreInstruction) instruction).getIndex() != localVariableIndex) {
+                handleIterator = handleIterator.getPrev();
+                instruction = handleIterator.getInstruction();
+            }
+
+            //Go back previous one more additional time to fetch constant push instruction
             handleIterator = handleIterator.getPrev();
             instruction = handleIterator.getInstruction();
         }
-
-        //Go back previous one more additional time to fetch constant push instruction
-        handleIterator = handleIterator.getPrev();
-        instruction = handleIterator.getInstruction();
 
         return ((TypedInstruction)instruction).getType(cpgen).getSignature();
     }
@@ -40,15 +42,15 @@ public class Signature {
      */
     public static boolean checkSignature(InstructionHandle left, InstructionHandle right, ConstantPoolGen cpgen, String signature) {
         if (left.getInstruction() instanceof LoadInstruction && right.getInstruction() instanceof LoadInstruction) {
-            if (getLoadInstructionSignature(left, cpgen).equals(signature) || getLoadInstructionSignature(right, cpgen).equals(signature)) {
+            if (getInstructionSignature(left, cpgen).equals(signature) || getInstructionSignature(right, cpgen).equals(signature)) {
                 return true;
             }
         } else if (left.getInstruction() instanceof LoadInstruction) {
-            if (getLoadInstructionSignature(left, cpgen).equals(signature) || ((TypedInstruction)right.getInstruction()).getType(cpgen).getSignature().equals(signature)) {
+            if (getInstructionSignature(left, cpgen).equals(signature) || ((TypedInstruction)right.getInstruction()).getType(cpgen).getSignature().equals(signature)) {
                 return true;
             }
         } else if (right.getInstruction() instanceof LoadInstruction) {
-            if (((TypedInstruction)left.getInstruction()).getType(cpgen).getSignature().equals(signature) || getLoadInstructionSignature(right, cpgen).equals(signature) ) {
+            if (((TypedInstruction)left.getInstruction()).getType(cpgen).getSignature().equals(signature) || getInstructionSignature(right, cpgen).equals(signature) ) {
                 return true;
             }
         } else {

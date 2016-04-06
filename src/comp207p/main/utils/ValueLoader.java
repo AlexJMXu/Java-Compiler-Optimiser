@@ -11,10 +11,10 @@ public class ValueLoader {
      * @param cpgen Constant pool of the class
      * @return Instruction handle value
      */
-    public static Number getValue(InstructionHandle h, ConstantPoolGen cpgen, InstructionList list) throws UnableToFetchValueException {
+    public static Number getValue(InstructionHandle h, ConstantPoolGen cpgen, InstructionList list, String type) throws UnableToFetchValueException {
         Instruction instruction = h.getInstruction();
         if(instruction instanceof LoadInstruction) {
-            return ValueLoader.getLoadInstructionValue(h, cpgen, list);
+            return ValueLoader.getLoadInstructionValue(h, cpgen, list, type);
         } else {
             return ValueLoader.getConstantValue(h, cpgen);
         }
@@ -48,7 +48,7 @@ public class ValueLoader {
      * @param cpgen Constant pool of the class
      * @return Load instruction value
      */
-    public static Number getLoadInstructionValue(InstructionHandle h, ConstantPoolGen cpgen, InstructionList list) throws UnableToFetchValueException {
+    public static Number getLoadInstructionValue(InstructionHandle h, ConstantPoolGen cpgen, InstructionList list, String type) throws UnableToFetchValueException {
         Instruction instruction = h.getInstruction();
         if(!(instruction instanceof LoadInstruction)) {
             throw new RuntimeException("InstructionHandle has to be of type LoadInstruction");
@@ -96,6 +96,12 @@ public class ValueLoader {
             throw new UnableToFetchValueException("Cannot fetch value for this type of object");
         }
 
-        return Utilities.foldOperation(new DADD(), storeValue, incrementAccumulator);
+        switch (type) {
+            case "F":
+            case "D":
+                return Utilities.foldOperation(new DADD(), storeValue, incrementAccumulator);
+            default:
+                return Utilities.foldOperation(new LADD(), storeValue, incrementAccumulator);
+        }
     }
 }

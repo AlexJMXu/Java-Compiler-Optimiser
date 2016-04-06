@@ -6,10 +6,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import comp207p.main.exceptions.UnableToFetchValueException;
-import comp207p.main.utils.ComparisonChecker;
-import comp207p.main.utils.ConstantPoolInserter;
-import comp207p.main.utils.Utilities;
-import comp207p.main.utils.ValueLoader;
+import comp207p.main.utils.*;
 import org.apache.bcel.classfile.*;
 import org.apache.bcel.generic.*;
 import org.apache.bcel.util.InstructionFinder;
@@ -150,17 +147,18 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable negation");
-            Utilities.printInstructionHandles(match, cpgen, instructionList);
 
             InstructionHandle loadInstruction = match[0];
             InstructionHandle negationInstruction = match[1];
 
-            Number value = ValueLoader.getValue(loadInstruction, cpgen, instructionList);
+            String type = comp207p.main.utils.Signature.getInstructionSignature(negationInstruction, cpgen);
+
+            Utilities.printInstructionHandles(match, cpgen, instructionList, type);
+
+            Number value = ValueLoader.getValue(loadInstruction, cpgen, instructionList, type);
 
             //Multiply by -1 to negate it, inefficient but oh well
             Number negatedValue = Utilities.foldOperation(new DMUL(), value, -1);
-
-            String type = comp207p.main.utils.Signature.getLoadInstructionSignature(loadInstruction, cpgen);
 
             System.out.format("Folding to value %s | Type: %s\n", negatedValue, type);
 
@@ -205,7 +203,6 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable arithmetic set");
-            Utilities.printInstructionHandles(match, cpgen, instructionList);
 
             Number leftValue, rightValue;
             InstructionHandle leftInstruction, rightInstruction, operationInstruction;
@@ -238,10 +235,15 @@ public class ConstantFolder
                 }
             }
 
+            //Get the signature of the folded value
+            String type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
+
+            Utilities.printInstructionHandles(match, cpgen, instructionList, type);
+
             //Fetch values for push instructions
             try {
-                leftValue = ValueLoader.getValue(leftInstruction, cpgen, instructionList);
-                rightValue = ValueLoader.getValue(rightInstruction, cpgen, instructionList);
+                leftValue = ValueLoader.getValue(leftInstruction, cpgen, instructionList, type);
+                rightValue = ValueLoader.getValue(rightInstruction, cpgen, instructionList, type);
             } catch (UnableToFetchValueException e) {
                 Utilities.printDynamicVariableDetected();
                 continue;
@@ -250,9 +252,6 @@ public class ConstantFolder
             ArithmeticInstruction operation = (ArithmeticInstruction) operationInstruction.getInstruction();
 
             Number foldedValue = Utilities.foldOperation(operation, leftValue, rightValue); //Perform the operation on the two values
-
-            //Get the signature of the folded value
-            String type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
 
             System.out.format("Folding to value %s | Type: %s\n", foldedValue, type);
 
@@ -297,7 +296,6 @@ public class ConstantFolder
             //Debug output
             System.out.println("==================================");
             System.out.println("Found optimisable comparison set");
-            Utilities.printInstructionHandles(match, cpgen, instructionList);
 
             Number leftValue = 0, rightValue = 0;
             InstructionHandle leftInstruction = null, rightInstruction = null, compare = null, comparisonInstruction = null;
@@ -351,11 +349,22 @@ public class ConstantFolder
                 comparisonInstruction = match[3+matchCounter]; //IfInstruction
             }
 
+            String type;
+            if(rightInstruction != null) {
+                type = ConstantPoolInserter.getFoldedConstantSignature(leftInstruction, rightInstruction, cpgen);
+            } else {
+                type = comp207p.main.utils.Signature.getInstructionSignature(leftInstruction, cpgen);
+            }
+
+            Utilities.printInstructionHandles(match, cpgen, instructionList, type);
+
+            System.out.println("Comparison instruction type: " + type);
+
             //Fetch values for push instructions
             try {
-                leftValue = ValueLoader.getValue(leftInstruction, cpgen, instructionList);
+                leftValue = ValueLoader.getValue(leftInstruction, cpgen, instructionList, type);
                 if (rightInstruction != null) { 
-                    rightValue = ValueLoader.getValue(rightInstruction, cpgen, instructionList);
+                    rightValue = ValueLoader.getValue(rightInstruction, cpgen, instructionList, type);
                 }
             } catch (UnableToFetchValueException e) {
                 Utilities.printDynamicVariableDetected();
@@ -364,14 +373,14 @@ public class ConstantFolder
 
             IfInstruction comparison = (IfInstruction) comparisonInstruction.getInstruction();
 
-            int result = 0;
+            int result;
 
             if (rightInstruction != null) {
                 if (comparisonInstruction == match[2]) { //Integer comparison
                     result = ComparisonChecker.checkIntComparison(comparison, leftValue, rightValue);
                 } else { //Non-integer type comparison
                     result = ComparisonChecker.checkFirstComparison(compare, leftValue, rightValue);
-                    result = ComparisonChecker.checkSecondComparison(comparison, result);;
+                    result = ComparisonChecker.checkSecondComparison(comparison, result);
                 }
             } else {
                 result = ComparisonChecker.checkSecondComparison(comparison, leftValue.intValue());
