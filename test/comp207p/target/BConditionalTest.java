@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 public class BConditionalTest {
     @Test
     public void foo() throws Exception {
-        assertEquals(5, new BConditional().foo());
+        assertEquals(6, new BConditional().foo());
     }
 
 }
